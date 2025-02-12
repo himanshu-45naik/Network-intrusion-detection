@@ -2,7 +2,6 @@ import os
 import zipfile
 from abc import ABC, abstractmethod
 import pandas as pd
-from zenml import step
 
 
 # Define an abstract class
@@ -39,13 +38,18 @@ class ZipDataIngester(Ingest_Data):
         if len(csv_files) == 0:
             raise FileNotFoundError("No CSV file found in extracted data.")
         if len(csv_files) > 1:
-            raise ValueError("Multiple CSV files found.Please specify which one to use.")
+            print(f"Number of CSV files found: {len(csv_files)}.")
     
 
         # Read the CSV into the dataframe
-        csv_file_path = os.path.join("extracted_data",csv_files[0])
-        df = pd.read_csv(csv_file_path)
+        csv_file_path = []
+        dataset = []
+        for i,csv_file in enumerate(csv_files,start=0):
+            path = os.path.join("extracted_data",csv_file)
+            csv_file_path.append(path)
+            dataset.append(pd.read_csv(path))
         
+        df = pd.concat(dataset,ignore_index=True)
         # Return the dataframe
         return df
     
@@ -61,13 +65,13 @@ class DataIngestorFactory:
             
         
     
-if __name__ == "__main__":
+# if __name__ == "__main__":
     
-    data_path = "/home/himanshu/Coding/archive.zip"
-    file_extension = os.path.splitext(data_path)[1]
+#     data_path = "/home/himanshu/Coding/archive.zip"
+#     file_extension = os.path.splitext(data_path)[1]
     
-    data_ingestor = DataIngestorFactory.get_data_ingestor(file_extension) 
+#     data_ingestor = DataIngestorFactory.get_data_ingestor(file_extension) 
     
-    df = data_ingestor.ingest_df(data_path)
+#     df = data_ingestor.ingest_df(data_path)
     
-    print(df.head())
+#     print(df.head())
