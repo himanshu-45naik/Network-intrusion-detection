@@ -34,7 +34,7 @@ class Replace_infinte_values(HandlingStrategy):
         """
         df_cleaned = df.copy()
         df_cleaned.replace([np.inf, -np.inf], np.nan, inplace=True)
-        logging.info("Infinte values replaced with Nan.")
+        logging.info(f"Infinte values replaced with Nan for features {features}.")
         
         return df_cleaned
 
