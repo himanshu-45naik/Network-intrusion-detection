@@ -51,7 +51,8 @@ class Handler:
             pd.DataFrame: Transformed DataFrame
         """
         handler = DropDuplicateValues()
-        return handler.transform(df)
+        transformed_df =  handler.transform(df)
+        return transformed_df
 
     
 if __name__ == '__main__':
