@@ -138,6 +138,10 @@ class OneHotEncoding(FeatureEngineeringStrategy):
 
 
 class DropOneValueFeature(FeatureEngineeringStrategy):
+    def __init__(self, features):
+        """Initializes the features to be dropped"""
+        self.features = features
+        
     def apply_transformation(self, df: pd.DataFrame) -> pd.DataFrame:
         """Drops feature which has only one unique value
 
@@ -155,6 +159,8 @@ class DropOneValueFeature(FeatureEngineeringStrategy):
         df = df[not_one_variable]
 
         logging.info(f"Sucessfully dropped columns {dropped_cols}")
+        
+        return df
 
 
 class FeatureEngineer:
@@ -169,7 +175,8 @@ class FeatureEngineer:
 
     def execute_strategy(self, df: pd.DataFrame):
         """Executes the strategy to perform feature engineering on the dataframe"""
-        self._strategy.apply_transformation(df)
+        return self._strategy.apply_transformation(df)
+        
 
 
 if __name__ == "__main__":
