@@ -71,11 +71,3 @@ class DataIngestorFactory:
 
 if __name__ == "__main__":
     pass
-#     data_path = "/home/himanshu/Coding/Network Intrusion/cicids17.zip"
-#     file_extension = os.path.splitext(data_path)[1]
-
-#     data_ingestor = DataIngestorFactory.get_data_ingestor(file_extension)
-
-#     df = data_ingestor.ingest_df(data_path)
-
-#     print(df.head())

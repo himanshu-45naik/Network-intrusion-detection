@@ -10,7 +10,7 @@ def data_ingestion(file_path: str) -> pd.DataFrame:
     Args:
         file_path (str): the path of file where the zip file exists
     """
-    data_ingestor = DataIngestorFactory.get_data_ingestor(file_path)
+    data_ingestor = DataIngestorFactory.get_data_ingestor(".zip")
 
     df = data_ingestor.ingest_df(file_path)
 
