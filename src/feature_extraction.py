@@ -60,4 +60,7 @@ class FeatureExtractor:
 
     def execute_strategy(self, df: pd.DataFrame):
         """Executes given strategy"""
-        self._strategy.transform(df)
+        return self._strategy.transform(df)
+
+if __name__ == "__main__":
+    pass
