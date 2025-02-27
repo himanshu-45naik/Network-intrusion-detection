@@ -1,10 +1,11 @@
 import pandas as pd
 from src.oversampling_data import Sampler, SyntheticMinortyOverSampling
+from typing import Tuple
 from zenml import step
 
 
 @step
-def sampling_data(x_train: pd.DataFrame, y_train: pd.DataFrame) -> pd.DataFrame:
+def sampling_data(x_train: pd.DataFrame, y_train: pd.DataFrame) -> Tuple[pd.DataFrame,pd.Series]:
     """Performs sampling on the unbalanced data.
 
     Args:
