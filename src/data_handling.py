@@ -21,8 +21,46 @@ class HandlingStrategy(ABC):
         """
         pass
 
+class ReplaceFeatureNames(HandlingStrategy):
+    def transform(self, df: pd.DataFrame, features:List) -> pd.DataFrame:
+        """Replaces the names by removing the unnecessary Whitesapces
+        
+        Args:
+            df (pd.DataFrame) : Input Dataframe.
+            features (List) : The name of features to be changed
+        
+        Returns:
+            df (pd.DataFrame): The Output DataFrame"""
+            
+        feature_names = {feature: feature.strip() for feature in features}
+        df.rename(columns=feature_names, inplace=True)
+        
+        # Creating a dictionary that maps each label to its attack type
+        attack_map = {
+            'BENIGN': 'BENIGN',
+            'DDoS': 'DDoS',
+            'DoS Hulk': 'DoS',
+            'DoS GoldenEye': 'DoS',
+            'DoS slowloris': 'DoS',
+            'DoS Slowhttptest': 'DoS',
+            'PortScan': 'Port Scan',
+            'FTP-Patator': 'Brute Force',
+            'SSH-Patator': 'Brute Force',
+            'Bot': 'Bot',
+            'Web Attack � Brute Force': 'Web Attack',
+            'Web Attack � XSS': 'Web Attack',
+            'Web Attack � Sql Injection': 'Web Attack',
+            'Infiltration': 'Infiltration',
+            'Heartbleed': 'Heartbleed'
+        }
 
-class Replace_infinte_values(HandlingStrategy):
+        # Creating a new column 'Attack Type' in the DataFrame based on the attack_map dictionary
+        df['Attack Type'] = df['Label'].map(attack_map)
+        df.drop('Label', axis=1, inplace = True)
+        
+        return df
+        
+class ReplaceInfinteValues(HandlingStrategy):
     def transform(self, df: pd.DataFrame, features: List) -> pd.DataFrame:
         """Replaces infinte values with Nan values.
 
@@ -40,7 +78,7 @@ class Replace_infinte_values(HandlingStrategy):
         return df_cleaned
 
 
-class Filling_missing_values(HandlingStrategy):
+class FillingMissingValues(HandlingStrategy):
 
     def __init__(self, method="mean", fill_value = None):
         """Initializes the specific method with which missing values are filled

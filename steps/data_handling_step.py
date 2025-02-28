@@ -1,10 +1,25 @@
 from zenml import step
 import pandas as pd
 import numpy as np
-from src.data_handling import Replace_infinte_values, Filling_missing_values, Handler
+from src.data_handling import ReplaceInfinteValues, FillingMissingValues, ReplaceFeatureNames
 import logging
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s-%(levelname)s-%(message)s")
+
+@ step
+def feature_name_handling(df: pd.DataFrame)-> pd.DataFrame:
+    """Changes the feature names of the dataframe.
+
+    Args:
+        df (pd.DataFrame): The Input dataframe.
+        
+    Returns:
+        pd.DataFrame: The output dataframe.
+    """
+    feature_names = df.columns
+    handle = ReplaceFeatureNames()
+    df_updated = handle.transform(df, feature_names)
+    return df_updated
 
 @step
 def handle_missing_data(
@@ -29,8 +44,8 @@ def handle_missing_data(
         return df.copy()
 
     if strategy in ["mean", "median", "mode", "constant"]:
-        handle = Filling_missing_values(method=strategy, fill_value=fill_value) # No Handler needed, use the strategy directly
-        df_cleaned = handle.transform(df, missing_features) # Call the transform method directly
+        handle = FillingMissingValues(method=strategy, fill_value=fill_value) 
+        df_cleaned = handle.transform(df, missing_features)
         return df_cleaned
     else:
         raise ValueError(f"Unsupported missing value handling strategy {strategy}")
@@ -55,8 +70,7 @@ def handle_infinite_values(df: pd.DataFrame) -> pd.DataFrame:
         logging.info("No infinite values found, skipping handling.")
         return df.copy()
 
-
-    handle = Replace_infinte_values()
+    handle = ReplaceInfinteValues()
     df_cleaned = handle.transform(df, inf_features)
 
     return df_cleaned
