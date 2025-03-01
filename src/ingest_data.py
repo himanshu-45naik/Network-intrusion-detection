@@ -42,9 +42,9 @@ class ZipDataIngester(Ingest_Data):
         # Read the CSV into the dataframe
         csv_file_path = []
         dataset = []
-        
+
         if len(csv_files) == 1:
-            csv_file_path = os.path.join("extracted_data",csv_files[0])
+            csv_file_path = os.path.join("extracted_data", csv_files[0])
             df = pd.read_csv(csv_file_path)
         else:
             for i, csv_file in enumerate(csv_files, start=0):
@@ -52,7 +52,7 @@ class ZipDataIngester(Ingest_Data):
                 csv_file_path.append(path)
                 dataset.append(pd.read_csv(path))
             df = pd.concat(dataset, ignore_index=True)
-            
+
         ## Return the dataframe
         return df
 
