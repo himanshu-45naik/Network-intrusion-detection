@@ -25,7 +25,7 @@ class SamplingStrategy(ABC):
 
 
 class SyntheticMinortyOverSampling(SamplingStrategy):
-    def transform(self, x_train: pd.DataFrame, y_train: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, x_train: pd.DataFrame, y_train: pd.Series) -> pd.DataFrame:
         """Transforms the unbalanced data using SMOTE.
 
         Args:

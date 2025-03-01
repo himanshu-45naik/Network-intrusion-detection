@@ -5,7 +5,9 @@ from zenml import step
 
 
 @step
-def sampling_data(x_train: pd.DataFrame, y_train: pd.DataFrame) -> Tuple[pd.DataFrame,pd.Series]:
+def sampling_data(
+    x_train: pd.DataFrame, y_train: pd.Series
+) -> Tuple[pd.DataFrame, pd.Series]:
     """Performs sampling on the unbalanced data.
 
     Args:
@@ -15,7 +17,7 @@ def sampling_data(x_train: pd.DataFrame, y_train: pd.DataFrame) -> Tuple[pd.Data
     Returns:
         pd.DataFrame: The transformed balanced data.
     """
-    sampling = Sampler(SyntheticMinortyOverSampling)
+    sampling = Sampler(SyntheticMinortyOverSampling())
     x_resampled, y_resampled = sampling.executer_strategy(x_train, y_train)
 
     return x_resampled, y_resampled
