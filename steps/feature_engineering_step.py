@@ -7,12 +7,14 @@ from src.feature_engineering import (
     StandardScaling,
     LogTransformation,
     DropOneValueFeature,
+    LabelEncodingTarget,
 )
 
 
 @step
 def feature_engineering(
-    df: pd.DataFrame, strategy: str,
+    df: pd.DataFrame,
+    strategy: str,
 ) -> pd.DataFrame:
     """Performs feature engineering on the data.
 
@@ -25,25 +27,32 @@ def feature_engineering(
     if strategy == "log":
         features = []
         feature_engineer = FeatureEngineer(LogTransformation(features))
-        
-    elif strategy == "standard": 
-        features_df = df.drop('Attack type',axis = 1)
+
+    elif strategy == "standard":
+        features_df = df.drop("Attack Type", axis=1)
         features = features_df.columns
         feature_engineer = FeatureEngineer(StandardScaling(features))
-        
+
     elif strategy == "min-max":
         features = []
         feature_engineer = FeatureEngineer(MinMaxScaling(features))
-        
+
     elif strategy == "onehotencoding":
         features = []
         feature_engineer = FeatureEngineer(OneHotEncoding(features))
-        
+
     elif strategy == "dropfeatures":
         num_unique = df.nunique()
         num_unique = num_unique[num_unique == 1].index.tolist()
         feature_engineer = FeatureEngineer(DropOneValueFeature(num_unique))
-        
+    elif strategy == "binaryencoding":
+        feature_engineer = FeatureEngineer(
+            LabelEncodingTarget("Attack Type", Binary=True)
+        )
+    elif strategy == "multiclassencoding":
+        feature_engineer = FeatureEngineer(
+            LabelEncodingTarget("Attack Type", Binary=False)
+        )
     else:
         raise ValueError(f"Unsupported feature engineering strategy:{strategy}")
 

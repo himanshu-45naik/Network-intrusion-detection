@@ -3,7 +3,12 @@ import pandas as pd
 import logging
 from abc import ABC, abstractmethod
 import numpy as np
-from sklearn.preprocessing import MinMaxScaler, OneHotEncoder, StandardScaler
+from sklearn.preprocessing import (
+    MinMaxScaler,
+    OneHotEncoder,
+    StandardScaler,
+    LabelEncoder,
+)
 
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s-%(levelname)s-%(message)s")
@@ -137,11 +142,32 @@ class OneHotEncoding(FeatureEngineeringStrategy):
         return df_transformed
 
 
+class LabelEncodingTarget(FeatureEngineeringStrategy):
+    def __init__(self, target: str, Binary=None):
+        """Intializes the feature for performing label encoding."""
+        self.target = target
+        self.Binary = Binary
+
+    def apply_transformation(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Performs label encoding on the given dataframe."""
+        if self.Binary:
+            df[self.target] = df[self.target].apply(lambda x: 0 if x == "BENIGN" else 1)
+            logging.info("Binary encoding of Target feature successfully performed.")
+            return df
+        else:
+            le = LabelEncoder()
+            df[self.target] = le.fit_transform(df[self.target])
+            logging.info(
+                "Label Encoding for multiclass classfication successfully performed."
+            )
+            return df
+
+
 class DropOneValueFeature(FeatureEngineeringStrategy):
     def __init__(self, features):
         """Initializes the features to be dropped"""
         self.features = features
-        
+
     def apply_transformation(self, df: pd.DataFrame) -> pd.DataFrame:
         """Drops feature which has only one unique value
 
@@ -159,7 +185,7 @@ class DropOneValueFeature(FeatureEngineeringStrategy):
         df = df[not_one_variable]
 
         logging.info(f"Sucessfully dropped columns {dropped_cols}")
-        
+
         return df
 
 
@@ -176,7 +202,6 @@ class FeatureEngineer:
     def execute_strategy(self, df: pd.DataFrame):
         """Executes the strategy to perform feature engineering on the dataframe"""
         return self._strategy.apply_transformation(df)
-        
 
 
 if __name__ == "__main__":
