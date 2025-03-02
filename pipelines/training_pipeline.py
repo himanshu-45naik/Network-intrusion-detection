@@ -13,6 +13,8 @@ from steps.feature_engineering_step import feature_engineering
 from steps.feature_extraction_step import feature_extraction
 from steps.data_splitting_step import data_splitter_step
 from steps.oversampling_data_step import sampling_data
+from steps.model_building_step import model_building
+from steps.model_evaluation_step import model_evaluation 
 
 
 @pipeline(model=Model(name="intrusion_predictor"))
@@ -57,6 +59,11 @@ def ml_pipeline():
     ## SMOTE step.
     X_train_resampled, y_train_resampled = sampling_data(X_train, y_train)
 
-
+    ## Model building step
+    lr_model = model_building(X_train_resampled, y_train_resampled, "logisticregression")
+    
+    ## Model evaluation step
+    lr_evaluation = model_evaluation(X_test, y_test, lr_model, "logisticregression")
+    
 if __name__ == "__main__":
     pass
