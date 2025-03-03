@@ -14,7 +14,7 @@ from steps.feature_extraction_step import feature_extraction
 from steps.data_splitting_step import data_splitter_step
 from steps.oversampling_data_step import sampling_data
 from steps.model_building_step import model_building
-from steps.model_evaluation_step import model_evaluation 
+from steps.model_evaluation_step import model_evaluation
 
 
 @pipeline(model=Model(name="intrusion_predictor"))
@@ -49,21 +49,30 @@ def ml_pipeline():
 
     ## PCA step.
     extracted_df = feature_extraction(scaled_df)
-    
+
     ## Label encoding for binary classification step
     encoded_df = feature_engineering(extracted_df, "binaryencoding")
-    
+
     ## Data splitting step.
     X_train, X_test, y_train, y_test = data_splitter_step(encoded_df, "Attack Type")
-    
+
     ## SMOTE step.
     X_train_resampled, y_train_resampled = sampling_data(X_train, y_train)
 
-    ## Model building step
-    lr_model = model_building(X_train_resampled, y_train_resampled, "logisticregression")
-    
+    ## Model building step (logistic regression)
+    lr_model = model_building(
+        X_train_resampled, y_train_resampled, "logisticregression"
+    )
+
     ## Model evaluation step
     lr_evaluation = model_evaluation(X_test, y_test, lr_model, "logisticregression")
-    
+
+    ## Model Building step (SVM)
+    OC_svm_model = model_building(X_train_resampled, y_train_resampled, "svm")
+
+    ## Model evaluation step
+    OC_svm_model = model_evaluation(X_test, y_test, OC_svm_model, "svm")
+
+
 if __name__ == "__main__":
     pass
