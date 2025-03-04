@@ -1,12 +1,15 @@
 import pandas as pd
 import logging
 from models.base_model import ModelBuildingStrategy
-import lightgbm as lgb 
+import lightgbm as lgb
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import GridSearchCV
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
 
 class LightGBMModel(ModelBuildingStrategy):
     def __init__(self, binary_class: bool):
@@ -23,7 +26,7 @@ class LightGBMModel(ModelBuildingStrategy):
         logging.info("Initializing LightGBM model hyperparameter tuning.")
 
         param_grid = {
-            "lgb__n_estimators": [100, 200],  
+            "lgb__n_estimators": [100, 200],
             "lgb__learning_rate": [0.01, 0.1],
             "lgb__max_depth": [-1, 5, 10],
             "lgb__num_leaves": [31, 50, 100],
@@ -70,6 +73,8 @@ class LightGBMBuilder:
         self._strategy = strategy
 
     def execute_strategy(self, X_train, y_train):
-        return self._strategy.model_building(X_train, y_train)  
+        return self._strategy.model_building(X_train, y_train)
+
+
 if __name__ == "__main__":
     pass

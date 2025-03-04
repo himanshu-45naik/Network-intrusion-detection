@@ -1,12 +1,15 @@
 import pandas as pd
 import logging
 from models.base_model import ModelBuildingStrategy
-import xgboost as xgb 
+import xgboost as xgb
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import GridSearchCV
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
 
 class XgbModel(ModelBuildingStrategy):
     def __init__(self, binary_class: bool):
@@ -24,7 +27,7 @@ class XgbModel(ModelBuildingStrategy):
 
         # Define hyperparameter grid (corrected)
         param_grid = {
-            "xgb__n_estimators": [100, 200],  
+            "xgb__n_estimators": [100, 200],
             "xgb__learning_rate": [0.01, 0.1],
             "xgb__max_depth": [3, 5, 7],
             "xgb__subsample": [0.8, 1.0],
@@ -71,7 +74,8 @@ class Xgbbuilder:
         self._strategy = strategy
 
     def execute_strategy(self, X_train, y_train):
-        return self._strategy.model_building(X_train, y_train) 
+        return self._strategy.model_building(X_train, y_train)
+
 
 if __name__ == "__main__":
     pass
