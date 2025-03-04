@@ -45,14 +45,17 @@ def feature_engineering(
         num_unique = df.nunique()
         num_unique = num_unique[num_unique == 1].index.tolist()
         feature_engineer = FeatureEngineer(DropOneValueFeature(num_unique))
+        
     elif strategy == "binaryencoding":
         feature_engineer = FeatureEngineer(
             LabelEncodingTarget("Attack Type", Binary=True)
         )
+        
     elif strategy == "multiclassencoding":
         feature_engineer = FeatureEngineer(
             LabelEncodingTarget("Attack Type", Binary=False)
         )
+        
     else:
         raise ValueError(f"Unsupported feature engineering strategy:{strategy}")
 
