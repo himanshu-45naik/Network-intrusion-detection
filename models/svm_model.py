@@ -13,12 +13,16 @@ class SvmModel(ModelBuildingStrategy):
     def build_train_model(self, X_train: pd.DataFrame, y_train: pd.Series):
 
         logging.info("Performing cross-validation and hyperparameter tuning for SVM.")
-        param_grid = {"C": [1, 10], "kernel": ["linear", "rbf"], "gamma": ["auto"]}
+        param_grid = {
+            "svm__C": [1, 10],
+            "svm__kernel": ["linear", "rbf"],
+            "svm__gamma": ["auto"],
+        }
 
         pipeline = Pipeline(
             [
                 ("scaler", StandardScaler()),
-                ("model", SVC(probability=True, random_state=42)),
+                ("svm", SVC(probability=True, random_state=42)),
             ]
         )
         grid_search = GridSearchCV(
@@ -39,7 +43,7 @@ class SvmModel(ModelBuildingStrategy):
         return best_pipeline
 
 
-class ModelBuilder:
+class SvcModelBuilder:
     def __init__(self, strategy: ModelBuildingStrategy):
         """Instantiate the model strategy to be trained."""
         self._strategy = strategy

@@ -1,55 +1,55 @@
 import pandas as pd
 import logging
 from models.base_model import ModelBuildingStrategy
-from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import GridSearchCV
-from sklearn.pipeline import Pipeline
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s-%(levelname)s-%(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 
-class LogisticRegressionModel(ModelBuildingStrategy):
+class RandomForestModel(ModelBuildingStrategy):
     def build_train_model(self, X_train: pd.DataFrame, y_train: pd.Series) -> Pipeline:
-        """Builds logistic regression model
+        """Builds and trains a Random Forest model."""
 
-        X_train, y_train : The training data."""
-
-        logging.info("Starting hyperparameter tuning for Logistic Regression.")
-
-        param_grid = {
-            "LR__C": [10, 100],
-            "LR__penalty": ["l1", "l2"],
-            "LR__solver": ["liblinear"],
-        }
-
-        lr = LogisticRegression(random_state=42)
+        logging.info("Initializing hypertuning of RF model.")
 
         pipeline = Pipeline(
-            [("scaler", StandardScaler()), ("LR", LogisticRegression())]
+            [
+                ("scaler", StandardScaler()),
+                ("rf", RandomForestClassifier(random_state=42)),
+            ]
         )
 
+        param_grid = {
+            "n_estimators": [97, 100],
+            "max_samples": [0.9034128710297624, 1],
+            "max_features": [0.1751204590963604, 0.5],
+            "min_samples_leaf": [1, 2],
+        }
+
+        logging.info("Starting hyperparameter tuning using GridSearchCV.")
         grid_search = GridSearchCV(
             estimator=pipeline,
             param_grid=param_grid,
             cv=3,
             scoring="accuracy",
             n_jobs=1,
-            verbose=1,
+            verbose=3,
         )
 
         grid_search.fit(X_train, y_train)
 
-        logging.info(
-            "Tuning complete. Best hyperparameters for Logistic regression: %s",
-            grid_search.best_params_,
-        )
+        logging.info(f"Best Parameters: {grid_search.best_params_}")
         best_pipeline = grid_search.best_estimator_
 
         return best_pipeline
 
 
-class LogisticModelBuilder:
+class RandomForestModelBuilder:
     def __init__(self, strategy: ModelBuildingStrategy):
         """Instantiate the model strategy to be trained."""
         self._strategy = strategy
