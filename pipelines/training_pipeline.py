@@ -106,37 +106,37 @@ def ml_pipeline():
         tracking_uri=MLFLOW_TRACKING_URI,
         experiment_name=MLFLOW_EXPERIMENT_NAME
     )
-    # Model building step (xgboost binary classfication)
-    xgb_binary_model = model_building(X_train_binary, y_train_binary, "xgb_binary")
+    # # Model building step (xgboost binary classfication)
+    # xgb_binary_model = model_building(X_train_binary, y_train_binary, "xgb_binary")
     
-    # Log xgb binary model to MLflow
-    xgb_bi_run_id = mlflow_tracker(
-        model=xgb_binary_model,
-        model_name="xgb_binary",
-        X_test=X_test_binary,
-        y_test=y_test_binary,
-        tracking_uri=MLFLOW_TRACKING_URI,
-        experiment_name=MLFLOW_EXPERIMENT_NAME
-    )
+    # # Log xgb binary model to MLflow
+    # xgb_bi_run_id = mlflow_tracker(
+    #     model=xgb_binary_model,
+    #     model_name="xgb_binary",
+    #     X_test=X_test_binary,
+    #     y_test=y_test_binary,
+    #     tracking_uri=MLFLOW_TRACKING_URI,
+    #     experiment_name=MLFLOW_EXPERIMENT_NAME
+    # )
     
-    # Model building step (xgboost multiclass classification)
-    xgb_multiclass_model = model_building(X_train_multiclass, y_train_multiclass, "xgb_multiclass")
+    # # Model building step (xgboost multiclass classification)
+    # xgb_multiclass_model = model_building(X_train_multiclass, y_train_multiclass, "xgb_multiclass")
     
-    # Log xgb multiclass model to mlflow
-    xgb_multi_run_id = mlflow_tracker(model = xgb_multiclass_model,
-        model_name = "xgb_multiclass",
-        X_test=X_test_multiclass,
-        y_test=y_test_multiclass,
-        tracking_uri=MLFLOW_TRACKING_URI,
-        experiment_name=MLFLOW_EXPERIMENT_NAME
-        ) 
+    # # Log xgb multiclass model to mlflow
+    # xgb_multi_run_id = mlflow_tracker(model = xgb_multiclass_model,
+    #     model_name = "xgb_multiclass",
+    #     X_test=X_test_multiclass,
+    #     y_test=y_test_multiclass,
+    #     tracking_uri=MLFLOW_TRACKING_URI,
+    #     experiment_name=MLFLOW_EXPERIMENT_NAME
+    #   ) 
     
     # Model building step (lighgbm bianry classification)
     lgb_binary_model = model_building(X_train_binary,y_train_bianry,"lgbm_binary")
     
     # Log lightgbm model to mlflow
     lgbm_bi_run_id = mlflow_tracker(
-        model=xgb_binary_model,
+        model=lgb_binary_model,
         model_name="lgbm_binary",
         X_test=X_test_binary,
         y_test=y_test_binary,
@@ -157,17 +157,17 @@ def ml_pipeline():
         ) 
     
     # Model Building step (ocSVM)
-    ocsvm_model = model_building(binary_df, y_train_bianry, "ocsvm")
+    # ocsvm_model = model_building(binary_df, y_train_bianry, "ocsvm")
 
-    # Log oc_SVM model to MLflow
-    oc_svm_run_id = mlflow_tracker(
-        model=ocsvm_model,
-        model_name="oc-svm",
-        X_test=X_test_binary,
-        y_test=y_test_binary,
-        tracking_uri=MLFLOW_TRACKING_URI,
-        experiment_name=MLFLOW_EXPERIMENT_NAME,
-    )
+    # # Log oc_SVM model to MLflow
+    # oc_svm_run_id = mlflow_tracker(
+    #     model=ocsvm_model,
+    #     model_name="oc-svm",
+    #     X_test=X_test_binary,
+    #     y_test=y_test_binary,
+    #     tracking_uri=MLFLOW_TRACKING_URI,
+    #     experiment_name=MLFLOW_EXPERIMENT_NAME,
+    # )
 
 
 
