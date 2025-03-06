@@ -157,17 +157,17 @@ def ml_pipeline():
         ) 
     
     # Model Building step (ocSVM)
-    # ocsvm_model = model_building(binary_df, y_train_bianry, "ocsvm")
+    ocsvm_model = model_building(binary_df, y_train_bianry, "ocsvm")
 
-    # # Log oc_SVM model to MLflow
-    # oc_svm_run_id = mlflow_tracker(
-    #     model=ocsvm_model,
-    #     model_name="oc-svm",
-    #     X_test=X_test_binary,
-    #     y_test=y_test_binary,
-    #     tracking_uri=MLFLOW_TRACKING_URI,
-    #     experiment_name=MLFLOW_EXPERIMENT_NAME,
-    # )
+    # Log oc_SVM model to MLflow
+    oc_svm_run_id = mlflow_tracker(
+        model=ocsvm_model,
+        model_name="oc-svm",
+        X_test=X_test_binary,
+        y_test=y_test_binary,
+        tracking_uri=MLFLOW_TRACKING_URI,
+        experiment_name=MLFLOW_EXPERIMENT_NAME,
+    )
 
 
 
