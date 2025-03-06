@@ -119,17 +119,17 @@ def ml_pipeline():
          experiment_name=MLFLOW_EXPERIMENT_NAME
     )
     
-    # # Model building step (xgboost multiclass classification)
-    # xgb_multiclass_model = model_building(X_train_multiclass, y_train_multiclass, "xgb_multiclass")
+    # Model building step (xgboost multiclass classification)
+    xgb_multiclass_model = model_building(X_train_multiclass, y_train_multiclass, "xgb_multiclass")
     
-    # # Log xgb multiclass model to mlflow
-    # xgb_multi_run_id = mlflow_tracker(model = xgb_multiclass_model,
-    #     model_name = "xgb_multiclass",
-    #     X_test=X_test_multiclass,
-    #     y_test=y_test_multiclass,
-    #     tracking_uri=MLFLOW_TRACKING_URI,
-    #     experiment_name=MLFLOW_EXPERIMENT_NAME
-    #   ) 
+    # Log xgb multiclass model to mlflow
+    xgb_multi_run_id = mlflow_tracker(model = xgb_multiclass_model,
+        model_name = "xgb_multiclass",
+        X_test=X_test_multiclass,
+        y_test=y_test_multiclass,
+        tracking_uri=MLFLOW_TRACKING_URI,
+        experiment_name=MLFLOW_EXPERIMENT_NAME
+    ) 
     
     # Model building step (lighgbm bianry classification)
     lgb_binary_model = model_building(X_train_binary,y_train_bianry,"lgbm_binary")
