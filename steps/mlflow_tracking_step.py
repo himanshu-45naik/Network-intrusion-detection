@@ -4,7 +4,7 @@ from sklearn.pipeline import Pipeline
 from src.mlflow_tracking import  ModelTracker
 
 @step
-def mlflow_tracker(model: Pipeline, model_name: str, X_test:pd.DataFrame, y_test: pd.Series, tracking_uri, experiment_name) -> str:
+def mlflow_tracker(model: Pipeline, model_name: str, X_test:pd.DataFrame, y_test: pd.Series, tracking_uri: str, experiment_name: str) -> str:
     """Implements the mlflow tracking.
 
     Args:
@@ -18,15 +18,18 @@ def mlflow_tracker(model: Pipeline, model_name: str, X_test:pd.DataFrame, y_test
     """
     if model_name == "logisticregression":
         tracker = ModelTracker()
-    if model_name == "oc-svm":
+    elif model_name == "oc-svm":
         tracker = ModelTracker()
-    if model_name == "rf_binary":
+    elif model_name == "rf_binary":
         tracker = ModelTracker()
-    if model_name == "xgb_bianry":
+    elif model_name == "xgb_bianry":
         tracker = ModelTracker()
-    if model_name == "xgb_multiclass":
+    elif model_name == "xgb_multiclass":
         tracker = ModelTracker()
+    else:
+        raise ValueError("Undefined Model.")
     
-    tracker.model_tracker(model, model_name, X_test, y_test, tracking_uri, experiment_name)
-        
+    run_id = tracker.model_tracker(model, model_name, X_test, y_test, tracking_uri, experiment_name)
+    
+    return run_id    
     
