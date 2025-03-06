@@ -15,38 +15,26 @@ class RandomForestModel(ModelBuildingStrategy):
     def build_train_model(self, X_train: pd.DataFrame, y_train: pd.Series) -> Pipeline:
         """Builds and trains a Random Forest model."""
 
-        logging.info("Initializing hypertuning of RF model.")
+        logging.info("Initializing Random Forest model with predefined best parameters.")
 
         pipeline = Pipeline(
             [
                 ("scaler", StandardScaler()),
-                ("rf", RandomForestClassifier(random_state=42)),
+                ("rf", RandomForestClassifier(
+                    n_estimators=97, 
+                    max_samples=0.9034128710297624, 
+                    max_features=0.1751204590963604, 
+                    min_samples_leaf=1, 
+                    random_state=42
+                )),
             ]
         )
 
-        param_grid = {
-            "n_estimators": [97, 100],
-            "max_samples": [0.9034128710297624, 1],
-            "max_features": [0.1751204590963604, 0.5],
-            "min_samples_leaf": [1, 2],
-        }
+        pipeline.fit(X_train, y_train)
 
-        logging.info("Starting hyperparameter tuning using GridSearchCV.")
-        grid_search = GridSearchCV(
-            estimator=pipeline,
-            param_grid=param_grid,
-            cv=3,
-            scoring="accuracy",
-            n_jobs=1,
-            verbose=3,
-        )
+        logging.info("Random Forest model training completed.")
 
-        grid_search.fit(X_train, y_train)
-
-        logging.info(f"Best Parameters: {grid_search.best_params_}")
-        best_pipeline = grid_search.best_estimator_
-
-        return best_pipeline
+        return pipeline
 
 
 class RandomForestModelBuilder:
