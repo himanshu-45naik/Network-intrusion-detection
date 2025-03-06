@@ -107,17 +107,17 @@ def ml_pipeline():
         experiment_name=MLFLOW_EXPERIMENT_NAME
     )
     # # Model building step (xgboost binary classfication)
-    # xgb_binary_model = model_building(X_train_binary, y_train_binary, "xgb_binary")
+    xgb_binary_model = model_building(X_train_binary, y_train_binary, "xgb_binary")
     
-    # # Log xgb binary model to MLflow
-    # xgb_bi_run_id = mlflow_tracker(
-    #     model=xgb_binary_model,
-    #     model_name="xgb_binary",
-    #     X_test=X_test_binary,
-    #     y_test=y_test_binary,
-    #     tracking_uri=MLFLOW_TRACKING_URI,
-    #     experiment_name=MLFLOW_EXPERIMENT_NAME
-    # )
+    # Log xgb binary model to MLflow
+    xgb_bi_run_id = mlflow_tracker(
+        model=xgb_binary_model,
+        model_name="xgb_binary",
+        X_test=X_test_binary,
+         y_test=y_test_binary,
+         tracking_uri=MLFLOW_TRACKING_URI,
+         experiment_name=MLFLOW_EXPERIMENT_NAME
+    )
     
     # # Model building step (xgboost multiclass classification)
     # xgb_multiclass_model = model_building(X_train_multiclass, y_train_multiclass, "xgb_multiclass")
