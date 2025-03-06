@@ -34,9 +34,9 @@ def model_building(X_train: pd.DataFrame, y_train: pd.Series, model_name: str)->
     elif model_name == "xgb_multiclass":
         model = Xgbbuilder(XgbModel(binary_class=False))
     elif model_name == "lgbm_binary":
-        model = Xgbbuilder(XgbModel(binary_class=True))
+        model = LightGBMBuilder(LightGBMModel(binary_class=True))
     elif model_name == "lbgm_multiclass":
-        model = Xgbbuilder(XgbModel(binary_class=False))
+        model = LightGBMBuilder(LightGBMModel(binary_class=False))
     
     best_model = model.execute_strategy(X_train, y_train)
 
