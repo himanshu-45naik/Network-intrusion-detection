@@ -91,7 +91,8 @@ class DataSplitter:
         X_train, X_test, y_train, y_test: The training and testing splits for features and target.
         """
         logging.info("Splitting data using the selected strategy.")
-        return self._strategy.split_data(df, target_column)
+        updated_df =  self._strategy.split_data(df, target_column)
+        return updated_df
 
 
 if __name__ == "__main__":
