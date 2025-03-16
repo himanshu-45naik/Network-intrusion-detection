@@ -1,21 +1,22 @@
 import pandas as pd
 from zenml import step
+from typing import Tuple
 from src.feature_engineering import (
     FeatureEngineer,
     OneHotEncoding,
-    MinMaxScaling,
     StandardScaling,
-    LogTransformation,
-    DropOneValueFeature,
     LabelEncodingTarget,
 )
 
 
 @step
 def feature_engineering(
-    df: pd.DataFrame,
+    X_train: pd.DataFrame,
+    X_test: pd.DataFrame,
+    y_train: pd.Series,
+    y_test: pd.Series,
     strategy: str,
-) -> pd.DataFrame:
+) ->Tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series] :
     """Performs feature engineering on the data.
 
     Args:
@@ -24,28 +25,13 @@ def feature_engineering(
     Returns:
         pd.DataFrame: The transformed data frame.
     """
-    if strategy == "log":
-        features = []
-        feature_engineer = FeatureEngineer(LogTransformation(features))
-
-    elif strategy == "standard":
-        features_df = df.drop("Attack Type", axis=1)
-        features = features_df.columns
-        feature_engineer = FeatureEngineer(StandardScaling(features))
-
-    elif strategy == "min-max":
-        features = []
-        feature_engineer = FeatureEngineer(MinMaxScaling(features))
+    if strategy == "standard":
+        feature_engineer = FeatureEngineer(StandardScaling())
 
     elif strategy == "onehotencoding":
         features = []
         feature_engineer = FeatureEngineer(OneHotEncoding(features))
 
-    elif strategy == "dropfeatures":
-        num_unique = df.nunique()
-        num_unique = num_unique[num_unique == 1].index.tolist()
-        feature_engineer = FeatureEngineer(DropOneValueFeature(num_unique))
-        
     elif strategy == "binaryencoding":
         feature_engineer = FeatureEngineer(
             LabelEncodingTarget("Attack Type", Binary=True)
@@ -59,5 +45,5 @@ def feature_engineering(
     else:
         raise ValueError(f"Unsupported feature engineering strategy:{strategy}")
 
-    transformed_data = feature_engineer.execute_strategy(df)
-    return transformed_data
+    X_train, X_test = feature_engineer.execute_strategy(X_train,X_test)
+    return X_train, X_test, y_train, y_test

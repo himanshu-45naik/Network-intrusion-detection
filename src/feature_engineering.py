@@ -1,10 +1,9 @@
-import logging.config
 import pandas as pd
 import logging
+from typing import Tuple
 from abc import ABC, abstractmethod
 import numpy as np
 from sklearn.preprocessing import (
-    MinMaxScaler,
     OneHotEncoder,
     StandardScaler,
     LabelEncoder,
@@ -16,7 +15,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s-%(levelname)s-%(mess
 
 class FeatureEngineeringStrategy(ABC):
     @abstractmethod
-    def apply_transformation(self, df: pd.DataFrame) -> pd.DataFrame:
+    def apply_transformation(self, df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """Abstract method for applying feature engineering strategy
 
         Args:
@@ -29,45 +28,11 @@ class FeatureEngineeringStrategy(ABC):
         pass
 
 
-class LogTransformation(FeatureEngineeringStrategy):
-    def __init__(self, features):
-        """
-        Initializes the features on which transformtion is to be applied
-        """
-
-        self.features = features
-
-    def apply_transformation(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Performs log trasformation on the given features
-
-        Args:
-            df (pd.DataFrame): The data frame on which transformation is performed
-
-        Returns:
-            pd.DataFrame: The transformed dataframe
-        """
-        logging.info(f"Applying log transformation to features : {self.features}")
-
-        df_transformed = df.copy()
-        for feature in self.features:
-            df_transformed[feature] = np.log1p(df[feature])
-        logging.info("Log transformation applied")
-
-        return df_transformed
-
-
 class StandardScaling(FeatureEngineeringStrategy):
 
-    def __init__(self, features: list):
-        """Initializes standard scaling with specific features
-
-        Args:
-            features (list): The features on which the tarnsformation is performed
-        """
-        self.features = features
-        self.scaler = StandardScaler()
-
-    def apply_transformation(self, df: pd.DataFrame) -> pd.DataFrame:
+    def apply_transformation(
+        self, X_train: pd.DataFrame, X_test: pd.DataFrame
+    ) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """Applies Standard scaling transformation on given features
 
         Args:
@@ -78,38 +43,16 @@ class StandardScaling(FeatureEngineeringStrategy):
         """
 
         logging.info(f"Applying Standard scaling to features: {self.features}")
-        df_transformed = df.copy()
+        scaler = StandardScaler()
 
-        df_transformed[self.features] = self.scaler.fit_transform(df[self.features])
+        scaler.fit(X_train)
+
+        X_train_scaled = scaler.transform(X_train)
+        X_test_scaled = scaler.transform(X_test)
+
         logging.info("Standard scaling applied")
 
-        return df_transformed
-
-
-class MinMaxScaling(FeatureEngineeringStrategy):
-    def __init__(self, features: list, feature_range=(0, 1)):
-        """Initializes Min-Max scaling which is performed on given features
-
-        Args:
-            features (list): The features on which scaling is perfomed
-            feature_range (tuple, optional): The target range for scaling. Defaults to (0,1).
-        """
-        self.features = features
-        self.scaler = MinMaxScaler(feature_range=feature_range)
-
-    def apply_transformation(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Applies min-max scaling on given features
-
-        Args:
-            df (pd.DataFrame): The data frame on which the min-max scaling is performed.
-        Returns:
-            pd.DataFrame: The transformed dataframe on which min-max scaling is applied
-        """
-        logging.info(f"Applying min-max scaling on features: {self.features}")
-        df_transformed = df.copy()
-        df_transformed[self.features] = self.scaler.fit_transform(df[self.features])
-        logging.info("Min-max scaling applied")
-        return df_transformed
+        return X_train_scaled, X_test_scaled
 
 
 class OneHotEncoding(FeatureEngineeringStrategy):
@@ -143,50 +86,46 @@ class OneHotEncoding(FeatureEngineeringStrategy):
 
 
 class LabelEncodingTarget(FeatureEngineeringStrategy):
-    def __init__(self, target: str, Binary=None):
-        """Intializes the feature for performing label encoding."""
-        self.target = target
-        self.Binary = Binary
-
-    def apply_transformation(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Performs label encoding on the given dataframe."""
-        if self.Binary:
-            df[self.target] = df[self.target].apply(lambda x: 0 if x == "BENIGN" else 1)
-            logging.info("Binary encoding of Target feature successfully performed.")
-            return df
-        else:
-            le = LabelEncoder()
-            df[self.target] = le.fit_transform(df[self.target])
-            logging.info(
-                "Label Encoding for multiclass classfication successfully performed."
-            )
-            return df
-
-
-class DropOneValueFeature(FeatureEngineeringStrategy):
-    def __init__(self, features):
-        """Initializes the features to be dropped"""
-        self.features = features
-
-    def apply_transformation(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Drops feature which has only one unique value
+    def __init__(self, target: str, binary: bool = False):
+        """Initializes the feature for performing label encoding.
 
         Args:
-            df (pd.DataFrame): The input data.
+            target (str): The target column name.
+            binary (bool): Whether to perform binary encoding (BENIGN vs attack).
+        """
+        self.target = target
+        self.binary = binary
+
+    def apply_transformation(self, y_train: pd.DataFrame, y_test: pd.DataFrame) -> Tuple[pd.Series, pd.Series]:
+        """Performs label encoding on the given dataframe.
+
+        Args:
+            y_train (pd.DataFrame): Training target labels.
+            y_test (pd.DataFrame): Testing target labels.
 
         Returns:
-            pd.DataFrame: The transformed data.
+            tuple: Transformed y_train, y_test, and the label encoder (for reference).
         """
-        num_unique = df.nunique()
-        one_variable = num_unique[num_unique == 1]
-        not_one_variable = num_unique[num_unique > 1].index
+        y_train = y_train.copy()
+        y_test = y_test.copy()
 
-        dropped_cols = one_variable.index
-        df = df[not_one_variable]
+        if self.binary:
+            y_train[self.target] = y_train[self.target].apply(lambda x: 0 if x == "BENIGN" else 1)
+            y_test[self.target] = y_test[self.target].apply(lambda x: 0 if x == "BENIGN" else 1)
+            logging.info("Binary encoding of target feature successfully performed.")
+            logging.info("Binary encoding completed: 'BENIGN' → 0, 'ATTACK' → 1")
 
-        logging.info(f"Sucessfully dropped columns {dropped_cols}")
+        else:
+            self.encoder = LabelEncoder()
+            y_train[self.target] = self.encoder.fit_transform(y_train[self.target])
+            y_test[self.target] = self.encoder.transform(y_test[self.target]) 
+            
+            encoding_map = dict(zip(self.encoder.classes_, self.encoder.transform(self.encoder.classes_)))
+            logging.info(f"Multiclass label encoding mapping: {encoding_map}")
+            logging.info("Label encoding for multiclass classification successfully performed.")
 
-        return df
+        return y_train, y_test
+
 
 
 class FeatureEngineer:
