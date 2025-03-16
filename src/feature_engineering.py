@@ -2,7 +2,6 @@ import pandas as pd
 import logging
 from typing import Tuple
 from abc import ABC, abstractmethod
-import numpy as np
 from sklearn.preprocessing import (
     OneHotEncoder,
     StandardScaler,
