@@ -5,7 +5,7 @@ from zenml import step
 
 
 @step
-def sampling_data(
+def over_sampling_data(
     x_train: pd.DataFrame, y_train: pd.Series
 ) -> Tuple[pd.DataFrame, pd.Series]:
     """Performs sampling on the unbalanced data.
