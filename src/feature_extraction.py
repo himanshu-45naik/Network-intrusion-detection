@@ -1,70 +1,73 @@
-import pandas as pd
-import numpy as np
-from abc import ABC, abstractmethod
 import logging
+import numpy as np
+import pandas as pd
+from typing import Tuple
 from sklearn.decomposition import IncrementalPCA
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s-%(levelname)s-%(message)s")
-
-
-class FeatureExtractionStrategy(ABC):
-    @abstractmethod
-    def transform(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Performs feautre extraction on the dataframe.
+class PCAFeatureReduction:
+    def __init__(self, n_components: float = 0.5, batch_size: int = 500):
+        """Initializes the PCA transformer.
 
         Args:
-            df(pd.DataFrame) : The dataframe on which feature extraction is performed.
-
-        Returns:
-            df(pd.DataFrame) : The transformed dataframe."""
-
-        pass
-
-
-class PrincipalComponentAnalysis(FeatureExtractionStrategy):
-    def transform(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Performs PCA on the dataframe
-
-        Args:
-            df (pd.DataFrame): The input dataframe.
-
-        Returns:
-            pd.DataFrame: The transformed dataframe.
+            n_components (float or int): Number of components to retain. 
+                                         If float (0-1), it represents the fraction of features.
+                                         If int, it represents the exact number of components.
+            batch_size (int): Batch size for incremental fitting.
         """
-        df_extracted = df.copy()
-        Attack = df["Attack Type"].copy()
-        df_extracted.drop("Attack Type", axis=1, inplace=True)
+        self.n_components = n_components
+        self.batch_size = batch_size
+        self.ipca = None  # Placeholder for the IncrementalPCA instance
 
-        size = len(df.columns) // 2
-        ipca = IncrementalPCA(n_components=size, batch_size=500)
+    def fit(self, X_train: pd.DataFrame):
+        """Fits PCA on the training data.
 
-        for batch in np.array_split(df_extracted, len(df_extracted) // 500):
-            ipca.partial_fit(batch)
+        Args:
+            X_train (pd.DataFrame): The training feature set.
+        """
+        num_features = X_train.shape[1]
+        n_components = int(self.n_components * num_features) if isinstance(self.n_components, float) else self.n_components
 
-        logging.info(
-            f"Performed PCA .Information retained: {sum(ipca.explained_variance_ratio_):.2%}"
-        )
-        transformed_df = ipca.transform(df_extracted)
-        new_data = pd.DataFrame(
-            transformed_df, columns=[f"PC{i+1}" for i in range(size)]
-        )
-        new_data["Attack Type"] = Attack
-        return new_data
+        self.ipca = IncrementalPCA(n_components=n_components, batch_size=self.batch_size)
 
+        # Fit PCA in batches
+        for batch in np.array_split(X_train, max(1, len(X_train) // self.batch_size)):
+            self.ipca.partial_fit(batch)
 
-class FeatureExtractor:
-    def __init__(self, strategy: FeatureExtractionStrategy):
-        """Initializes the strataegy to execute"""
-        self._strategy = strategy
+        logging.info(f"PCA fitted. Information retained: {sum(self.ipca.explained_variance_ratio_):.2%}")
 
-    def set_strategy(self, strategy: FeatureExtractionStrategy):
-        """Set strategy to the given specific strategy"""
-        self._strategy = strategy
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        """Applies PCA transformation to the dataset.
 
-    def execute_strategy(self, df: pd.DataFrame):
-        """Executes given strategy"""
-        return self._strategy.transform(df)
+        Args:
+            X (pd.DataFrame): The input feature set.
 
+        Returns:
+            pd.DataFrame: Transformed dataset with principal components.
+        """
+        transformed_data = self.ipca.transform(X)
+        return pd.DataFrame(transformed_data, columns=[f"PC{i+1}" for i in range(self.ipca.n_components_)])
 
-if __name__ == "__main__":
-    pass
+    def fit_transform(self, X_train: pd.DataFrame, X_test: pd.DataFrame, y_train: pd.Series, y_test: pd.Series)-> Tuple[pd.DataFrame, pd.DataFrame]:
+        """Fits PCA on X_train and transforms both X_train and X_test.
+
+        Args:
+            X_train (pd.DataFrame): Training feature set.
+            X_test (pd.DataFrame): Testing feature set.
+            y_train (pd.Series): Training target labels.
+            y_test (pd.Series): Testing target labels.
+
+        Returns:
+            tuple: Transformed X_train, X_test with PCA components, and their corresponding labels.
+        """
+        self.fit(X_train)
+
+        X_train_pca = self.transform(X_train)
+        X_test_pca = self.transform(X_test)
+
+        # Retain labels
+        X_train_pca["Attack Type"] = y_train.values
+        X_test_pca["Attack Type"] = y_test.values
+
+        logging.info(f"PCA transformation applied to training and testing datasets.")
+
+        return X_train_pca, X_test_pca
