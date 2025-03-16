@@ -4,7 +4,7 @@ from src.dropfeatures import DropOneValueFeature
 
 
 @step
-def drop_feature_step(df:pd.DataFrame,features:list)->pd.DataFrame:
+def drop_feature(df:pd.DataFrame)->pd.DataFrame:
     
     dropper = (DropOneValueFeature())
     num_unique = df.nunique()
