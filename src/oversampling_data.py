@@ -1,4 +1,5 @@
 import pandas as pd
+from typing import Tuple
 from abc import ABC, abstractmethod
 from imblearn.over_sampling import SMOTE
 import logging
@@ -10,7 +11,7 @@ class SamplingStrategy(ABC):
     """Strategy for sampling unbalanced data."""
 
     @abstractmethod
-    def transform(self, x_train: pd.DataFrame, y_train: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, x_train: pd.DataFrame, y_train: pd.DataFrame) -> Tuple[pd.DataFrame, pd.Series]:
         """Performs sampling on data to convert it into balanced data.
 
         Args:
@@ -25,7 +26,7 @@ class SamplingStrategy(ABC):
 
 
 class SyntheticMinortyOverSampling(SamplingStrategy):
-    def transform(self, x_train: pd.DataFrame, y_train: pd.Series) -> pd.DataFrame:
+    def transform(self, x_train: pd.DataFrame, y_train: pd.Series) -> Tuple[pd.DataFrame, pd.Series]:
         """Transforms the unbalanced data using SMOTE.
 
         Args:
@@ -36,10 +37,13 @@ class SyntheticMinortyOverSampling(SamplingStrategy):
         Returns:
             pd.DataFrame: The transformed balanced data.
         """
+        logging.info(f"Before resampling X_resampled shape: {x_resampled.shape}, y_resampled shape: {y_resampled.shape}")
+        logging.info(f"Unique classes in y_train: {y_train.unique()}")
         smote = SMOTE(random_state=42)
         x_resampled, y_resampled = smote.fit_resample(x_train, y_train)
         logging.info("Successfully performed SMOTE.")
-
+        logging.info(f"After resamplingl X_resampled shape: {x_resampled.shape}, y_resampled shape: {y_resampled.shape}")
+        logging.info(f"Unique classes in y_train: {y_train.unique()}")
         return x_resampled, y_resampled
 
 
@@ -54,7 +58,7 @@ class Sampler:
 
     def executer_strategy(
         self, x_train: pd.DataFrame, y_train: pd.DataFrame
-    ) -> pd.DataFrame:
+    ) -> Tuple[pd.DataFrame, pd.Series]:
         """Executes the specific strategy to perform sampling on the data."""
 
         return self._strategy.transform(x_train, y_train)
