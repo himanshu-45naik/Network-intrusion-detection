@@ -38,7 +38,7 @@ This repository contains a complete ML pipeline for network intrusion detection.
 4. **Set up ZenML**
 
    ```
-   zenml init
+   zenml login --"local"
    ```
 
 ## Project Structure
