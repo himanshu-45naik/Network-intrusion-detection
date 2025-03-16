@@ -9,4 +9,6 @@ def feature_extraction(X_train: pd.DataFrame, X_test:pd.DataFrame) -> Tuple[pd.D
     """Peforms feature extraction on the dataset."""
 
     extractor = PCAFeatureReduction()
-    return extractor.fit_transform(X_train, X_test)
+    X_train, X_test = extractor.fit_transform(X_train, X_test)
+    
+    return X_train, X_test
