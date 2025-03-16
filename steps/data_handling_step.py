@@ -16,7 +16,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s-%(levelname)s-%(mess
 
 @step
 def handling_data(
-    df: pd.DataFrame, handling_strategy: str, filling_strategy: str = "mean", fill_value=None
+    df: pd.DataFrame, filling_strategy: str = "mean", fill_value=None
 ) -> pd.DataFrame:
     """Handles Data for missing and infinite values.
 
@@ -37,7 +37,7 @@ def handling_data(
 
     # Dropping Duplicate values.
     handler2 = Handler(DropDuplicateValues())  
-    transformed_df = handler2.execute_strategy(updated_raw_df)
+    transformed_df = handler2.execute_strategy(updated_raw_df, features=None)
 
     # Replacing infinity values with NaN
     handler3 = Handler(ReplaceInfinteValues())
