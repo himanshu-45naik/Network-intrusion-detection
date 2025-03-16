@@ -55,12 +55,26 @@ class ReplaceFeatureNames(HandlingStrategy):
             "Heartbleed": "Heartbleed",
         }
 
-        # Creating a new column 'Attack Type' in the DataFrame based on the attack_map dictionary
         df["Attack Type"] = df["Label"].map(attack_map)
         df.drop("Label", axis=1, inplace=True)
 
         return df
 
+class DropDuplicateValues(HandlingStrategy):
+    def transform(self, df: pd.DataFrame, features= None) -> pd.DataFrame:
+        """
+        Drops the duplicate values.
+
+        Args:
+            df (pd.DataFrame): Input DataFrame
+
+        Returns:
+            pd.DataFrame: DataFrame with duplicates removed
+        """
+        df_cleaned = df.copy()
+        df_cleaned.drop_duplicates(inplace=True)
+        logging.info("Successfully dropped duplicate values.")
+        return df_cleaned
 
 class ReplaceInfinteValues(HandlingStrategy):
     def transform(self, df: pd.DataFrame, features: List) -> pd.DataFrame:
@@ -76,7 +90,7 @@ class ReplaceInfinteValues(HandlingStrategy):
         df_cleaned = df.copy()
         df_cleaned[features] = df_cleaned[features].replace([np.inf, -np.inf], np.nan)
         logging.info(f"Infinite values replaced with Nan for features {features}.")
-
+        logging.ingo(f"Shape of dataframe after replacing infinte values ")
         return df_cleaned
 
 
@@ -113,7 +127,7 @@ class FillingMissingValues(HandlingStrategy):
             elif self.method == "mode":
                 df_cleaned[feature] = df[feature].fillna(
                     df[feature].mode()[0]
-                )  # mode returns a series
+                )  
             elif self.method == "constant":
                 if self.fill_value is None:
                     raise ValueError(
@@ -128,6 +142,48 @@ class FillingMissingValues(HandlingStrategy):
         return df_cleaned
 
 
+class DropOneValueFeature(HandlingStrategy):
+    
+
+    def transform(self, df: pd.DataFrame,features:list) -> pd.DataFrame:
+        """Drops feature which has only one unique value.
+        Args:
+            df (pd.DataFrame): The input data.
+
+        Returns:
+            pd.DataFrame: The transformed data.
+        """
+        num_unique = df.nunique()
+        one_variable = num_unique[num_unique == 1]
+        not_one_variable = num_unique[num_unique > 1].index
+
+        dropped_cols = one_variable.index
+        df = df[not_one_variable]
+
+        logging.info(f"Sucessfully dropped columns {dropped_cols}")
+
+        return df
+
+class DownCasting(HandlingStrategy):
+
+    def transform(self, df: pd.DataFrame, features= None) -> pd.DataFrame:
+        """Converts the int64 and float64 to int32 and float32 respectively."""
+
+        df_tranformed = df.copy()
+
+        for col in df.columns:
+            col_type = df[col].dtype
+
+            # Downcast float64 to float32
+            if col_type == "float64":
+                df_tranformed[col] = df_tranformed[col].astype(np.float32)
+
+            # Downcast int64 to int32
+            elif col_type == "int64":
+                df_tranformed[col] = df_tranformed[col].astype(np.int32)
+        logging.info("Sucessfully downcasted the data.")
+        return df_tranformed
+    
 class Handler:
     def __init__(self, strategy: HandlingStrategy):
         """Initializes the strategy for handling the data."""
