@@ -8,7 +8,7 @@ from steps.feature_engineering_step import feature_engineering
 from steps.feature_extraction_step import feature_extraction
 from steps.data_splitting_step import data_splitting
 from steps.drop_features_step import drop_feature
-from steps.oversampling_data_step import sampling_data
+from steps.oversampling_data_step import over_sampling_data
 from steps.model_building_step import model_building
 from steps.mlflow_tracking_step import mlflow_tracker
 from steps.model_downloader import download_model_from_mlflow
@@ -25,7 +25,7 @@ MLFLOW_EXPERIMENT_NAME = os.getenv("MLFLOW_EXPERIMENT_NAME")
 def ml_pipeline():
     """Defines end-to-end machine learning pipeline with MLflow tracking."""
 
-    ## CHeck feature engineering steps fucntion call
+    ## Check feature engineering steps fucntion call
     ## Check data handling function calling
     ## Carry out all the feature cleaning -- nan infinity feature name and duplicate in one script.
 
@@ -57,15 +57,15 @@ def ml_pipeline():
     )
 
     # SMOTE step
-    X_train_binary, y_train_binary = sampling_data(X_train_binary, y_train_binary)
-    X_train_multiclass, y_train_multiclass = sampling_data(
+    X_train_binary, y_train_binary = over_sampling_data(X_train_binary, y_train_binary)
+    X_train_multiclass, y_train_multiclass = over_sampling_data(
         X_train_multiclass, y_train_multiclass
     )
 
     # Scaling step
-    X_train_binary, X_test_binary = feature_engineering(X_train_binary, X_test_binary,"standard")
-    X_train_multiclass, X_test_multiclass = feature_engineering(
-        X_train_multiclass, X_test_multiclass
+    X_train_binary, X_test_binary, y_train_binary, y_test_binary = feature_engineering(X_train_binary, X_test_binary, y_train_binary, y_test_binary, "standard")
+    X_train_multiclass, X_test_multiclass, y_train_multiclass, y_test_multiclass = feature_engineering(
+        X_train_multiclass, X_test_multiclass, y_test_multiclass, y_train_multiclass, "standard"
     )
 
     # PCA step
