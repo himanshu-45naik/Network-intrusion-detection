@@ -1,7 +1,7 @@
 import pandas as pd
 import logging
 from models.base_model import ModelBuildingStrategy
-import xgboost as xgb
+import lightgbm as lgb
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import GridSearchCV, StratifiedKFold
@@ -11,7 +11,7 @@ logging.basicConfig(
 )
 
 
-class XgbModel(ModelBuildingStrategy):
+class LgbModel(ModelBuildingStrategy):
     def __init__(self, binary_class: bool):
         """Initializes the strategy of training the model.
 
@@ -21,38 +21,38 @@ class XgbModel(ModelBuildingStrategy):
         self.binary_class = binary_class
 
     def build_train_model(self, X_train: pd.DataFrame, y_train: pd.Series) -> Pipeline:
-        """Builds and trains XGBoost model."""
+        """Builds and trains LightGBM model."""
 
-        logging.info("Initializing XGBoost model hyperparameter tuning.")
+        logging.info("Initializing LightGBM model hyperparameter tuning.")
 
-        # Define hyperparameter grid (corrected)
+        # Define hyperparameter grid
         param_grid = {
-            "xgb__n_estimators": [100, 200],
-            "xgb__learning_rate": [0.01, 0.1],
-            "xgb__max_depth": [3, 5, 7],
-            "xgb__subsample": [0.8, 1.0],
+            "lgb__n_estimators": [100, 200],
+            "lgb__learning_rate": [0.01, 0.1],
+            "lgb__max_depth": [3, 5, 7],
+            "lgb__subsample": [0.8, 1.0],
         }
 
         if self.binary_class:
-            objective = "binary:logistic"
+            objective = "binary"
             num_class = None
         else:
-            objective = "multi:softmax"
+            objective = "multiclass"
             num_class = len(y_train.unique())
 
         pipeline = Pipeline(
             [
                 ("scaler", StandardScaler()),
                 (
-                    "xgb",
-                    xgb.XGBClassifier(
-                        objective=objective, num_class=num_class, eval_metric="mlogloss"
+                    "lgb",
+                    lgb.LGBMClassifier(
+                        objective=objective, num_class=num_class, metric="multi_logloss"
                     ),
                 ),
             ]
         )
-        cv = StratifiedKFold(n_splits=2, shuffle=True, random_state=42)
-        
+        cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
+
         grid_search = GridSearchCV(
             pipeline, param_grid, cv=cv, scoring="accuracy", verbose=3, n_jobs=1
         )
@@ -66,7 +66,7 @@ class XgbModel(ModelBuildingStrategy):
         return best_model
 
 
-class Xgbbuilder:
+class LgbBuilder:
     def __init__(self, strategy: ModelBuildingStrategy):
         """Instantiate the model strategy to be trained."""
         self._strategy = strategy

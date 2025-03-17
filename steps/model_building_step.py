@@ -5,7 +5,7 @@ from models.logistic_regression import LogisticModelBuilder, LogisticRegressionM
 from models.svm_model import SvcModelBuilder, SvmModel
 from models.oc_svm import OCsvmModelBuilder, OneClassSvmModel
 from models.randomforest import RandomForestModelBuilder, RandomForestModel
-# from models.lgbm_model import LightGBMBuilder, LightGBMModel
+from models.lightgbm_model import LgbBuilder, LgbModel
 from models.xgboost_model import Xgbbuilder, XgbModel
 from sklearn.pipeline import Pipeline
 
@@ -33,10 +33,10 @@ def model_building(X_train: pd.DataFrame, y_train: pd.Series, model_name: str)->
         model = Xgbbuilder(XgbModel(binary_class=True))
     elif model_name == "xgb_multiclass":
         model = Xgbbuilder(XgbModel(binary_class=False))
-    # elif model_name == "lgbm_binary":
-    #     model = LightGBMBuilder(LightGBMModel(binary_class=True))
-    # elif model_name == "lbgm_multiclass":
-    #     model = LightGBMBuilder(LightGBMModel(binary_class=False))
+    elif model_name == "lgbm_binary":
+        model = LgbBuilder(LgbModel(binary_class=True))
+    elif model_name == "lbgm_multiclass":
+        model = LightGBMBuilder(LgbModel(binary_class=False))
     
     best_model = model.execute_strategy(X_train, y_train)
 

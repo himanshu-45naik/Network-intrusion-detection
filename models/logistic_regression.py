@@ -18,7 +18,7 @@ class LogisticRegressionModel(ModelBuildingStrategy):
         logging.info("Starting hyperparameter tuning for Logistic Regression.")
 
         param_grid = {
-            "LR__C": [10, 100],
+            "LR__C": [0.01, 0.1, 1, 10, 100],
             "LR__penalty": ["l1", "l2"],
             "LR__solver": ["liblinear"],
         }
@@ -26,7 +26,7 @@ class LogisticRegressionModel(ModelBuildingStrategy):
         lr = LogisticRegression(random_state=42)
 
         pipeline = Pipeline(
-            [("scaler", StandardScaler()), ("LR", LogisticRegression())]
+            [("scaler", StandardScaler()), ("LR", LogisticRegression(max_iter=5000))]
         )
 
         grid_search = GridSearchCV(
@@ -34,7 +34,7 @@ class LogisticRegressionModel(ModelBuildingStrategy):
             param_grid=param_grid,
             cv=3,
             scoring="accuracy",
-            n_jobs=1,
+            n_jobs=3,
             verbose=1,
         )
 

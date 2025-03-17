@@ -88,56 +88,60 @@ class OneHotEncoding(FeatureEngineeringStrategy):
         return df_transformed
 
 
-class LabelEncodingTarget(FeatureEngineeringStrategy):
-    def __init__(self, target: str, binary: bool = False):
-        """Initializes the feature for performing label encoding.
+class LabelEncodingTarget:
+    def __init__(self, target: str, binary: bool = False, rare_threshold: int = 100):
+        """Initializes the feature for performing label encoding with rare class merging.
 
         Args:
             target (str): The target column name.
             binary (bool): Whether to perform binary encoding (BENIGN vs attack).
+            rare_threshold (int): Minimum count for a class to be kept separate.
         """
         self.target = target
         self.binary = binary
+        self.rare_threshold = rare_threshold
+        self.encoder = LabelEncoder()
 
-    def apply_transformation(self, y_train: pd.Series, y_test: pd.Series) -> Tuple[pd.Series, pd.Series]:
-        """Performs label encoding on the given Series.
+    def apply_transformation(
+        self, y_train: pd.Series, y_test: pd.Series
+    ) -> Tuple[pd.Series, pd.Series, dict]:
+        """Performs label encoding and merges rare classes into 'Other_Attacks'.
 
         Args:
             y_train (pd.Series): Training target labels.
             y_test (pd.Series): Testing target labels.
 
         Returns:
-            tuple: Transformed y_train, y_test, and the label encoder (for reference).
+            tuple: Encoded y_train, y_test, and the encoding map.
         """
         y_train = y_train.copy()
         y_test = y_test.copy()
 
         if self.binary:
-            y_train_updated = y_train.apply(lambda x: 0 if x == "BENIGN" else 1)
-            y_train = pd.Series(y_train_updated, name="Attack Type")
-            y_test_updated = y_test.apply(lambda x: 0 if x == "BENIGN" else 1)
-            y_test = pd.Series(y_test_updated, name="Attack Type")
- 
-            logging.info("Binary encoding of target feature successfully performed.")
- 
-            logging.info("Binary encoding completed: 'BENIGN' → 0, 'ATTACK' → 1")
+            # Binary Encoding: BENIGN = 0, ATTACK = 1
+            y_train_encoded = y_train.apply(lambda x: 0 if x == "BENIGN" else 1)
+            y_test_encoded = y_test.apply(lambda x: 0 if x == "BENIGN" else 1)
+            encoding_map = {"BENIGN": 0, "ATTACK": 1}
 
+            logging.info("Binary encoding completed: 'BENIGN' → 0, 'ATTACK' → 1")
         else:
-            self.encoder = LabelEncoder()
-                        
-            y_train_updated = self.encoder.fit_transform(y_train)
-            y_train = pd.Series(y_train_updated, name="Attack Type")
-            y_test_updated = self.encoder.transform(y_test) 
-            y_test = pd.Series(y_test_updated, name="Attack Type")
+            # Identify rare classes
+            class_counts = y_train.value_counts()
+            rare_classes = class_counts[class_counts < self.rare_threshold].index.tolist()
             
-            logging.info("Multiclass encoding of target feature successfully performed.")
+            # Merge rare classes into 'Other_Attacks'
+            y_train = y_train.apply(lambda x: "Other_Attacks" if x in rare_classes else x)
+            y_test = y_test.apply(lambda x: "Other_Attacks" if x in rare_classes else x)
+            
+            # Fit Label Encoder
+            y_train_encoded = self.encoder.fit_transform(y_train)
+            y_test_encoded = self.encoder.transform(y_test)
             
             encoding_map = dict(zip(self.encoder.classes_, self.encoder.transform(self.encoder.classes_)))
-            logging.info(f"Multiclass label encoding mapping: {encoding_map}")
-    
-        return y_train, y_test
+            logging.info(f"Merged rare classes {rare_classes} into 'Other_Attacks'.")
+            logging.info(f"Final label encoding mapping: {encoding_map}")
 
-
+        return pd.Series(y_train_encoded, name=self.target), pd.Series(y_test_encoded, name=self.target)
 
 class FeatureEngineer:
     def __init__(self, strategy):

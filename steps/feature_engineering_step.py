@@ -36,7 +36,7 @@ def feature_engineering(
 
     elif strategy == "binaryencoding":
         feature_engineer = FeatureEngineer(
-            LabelEncodingTarget(target ="Attack Type", binary=True)
+            LabelEncodingTarget(target ="Attack Type", binary=True, rare_threshold=100)
         )
         print(y_train.name)
         print(y_test.name)
@@ -44,7 +44,7 @@ def feature_engineering(
         
     elif strategy == "multiclassencoding":
         feature_engineer = FeatureEngineer(
-            LabelEncodingTarget(target ="Attack Type", binary=False)
+            LabelEncodingTarget(target ="Attack Type", binary=False, rare_threshold=100)
         )
         y_train, y_test = feature_engineer.execute_strategy(y_train, y_test)
         

@@ -66,7 +66,7 @@ def ml_pipeline():
     # Scaling step
     X_train_binary, X_test_binary, y_train_binary, y_test_binary = feature_engineering(X_train_binary, X_test_binary, y_train_binary, y_test_binary, "standard")
     X_train_multiclass, X_test_multiclass, y_train_multiclass, y_test_multiclass = feature_engineering(
-        X_train_multiclass, X_test_multiclass, y_test_multiclass, y_train_multiclass, "standard"
+        X_train_multiclass, X_test_multiclass, y_train_multiclass, y_test_multiclass, "standard"
     )
 
     # PCA step
@@ -189,7 +189,6 @@ def ml_pipeline():
         lgbm_multi_run_id, "lgbm_multiclass"
     )
     print(f"Model saved to: {lgbm_multi_model_path}")
-
     """
 
 if __name__ == "__main__":

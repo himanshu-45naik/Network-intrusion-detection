@@ -22,7 +22,9 @@ def mlflow_tracker(model: Pipeline, model_name: str, X_test:pd.DataFrame, y_test
         tracker = ModelTracker()
     elif model_name == "rf_binary":
         tracker = ModelTracker()
-    elif model_name == "xgb_bianry":
+    elif model_name == "rf_multiclass":
+        tracker = ModelTracker()
+    elif model_name == "xgb_binary":
         tracker = ModelTracker()
     elif model_name == "xgb_multiclass":
         tracker = ModelTracker()
