@@ -1,1 +1,8 @@
 src/extracted_data/cicids17.csv
+env/
+*.env
+*.zip
+extracted_data/
+mlruns/
+models/
+*__pycache__*

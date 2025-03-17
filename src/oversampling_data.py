@@ -1,9 +1,8 @@
 import pandas as pd
 from typing import Tuple
 from abc import ABC, abstractmethod
-from imblearn.over_sampling import SMOTE
+from imblearn.combine import SMOTETomek
 import logging
-
 logging.basicConfig(level=logging.INFO, format="%(asctime)s-%(levelname)s-%(message)s")
 
 
@@ -37,10 +36,12 @@ class SyntheticMinortyOverSampling(SamplingStrategy):
         Returns:
             pd.DataFrame: The transformed balanced data.
         """
-        logging.info(f"Before resampling X_resampled shape: {x_resampled.shape}, y_resampled shape: {y_resampled.shape}")
+        logging.info(f"Before resampling X_resampled shape: {x_train.shape}, y_resampled shape: {y_train.shape}")
         logging.info(f"Unique classes in y_train: {y_train.unique()}")
-        smote = SMOTE(random_state=42)
+        smote = SMOTETomek(random_state=42)
         x_resampled, y_resampled = smote.fit_resample(x_train, y_train)
+        x_resampled = pd.DataFrame(x_resampled)
+        y_resampled = pd.Series(y_resampled)
         logging.info("Successfully performed SMOTE.")
         logging.info(f"After resamplingl X_resampled shape: {x_resampled.shape}, y_resampled shape: {y_resampled.shape}")
         logging.info(f"Unique classes in y_train: {y_train.unique()}")

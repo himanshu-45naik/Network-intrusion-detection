@@ -27,24 +27,29 @@ def feature_engineering(
     """
     if strategy == "standard":
         feature_engineer = FeatureEngineer(StandardScaling())
+        X_train, X_test = feature_engineer.execute_strategy(X_train,X_test)
 
     elif strategy == "onehotencoding":
         features = []
         feature_engineer = FeatureEngineer(OneHotEncoding(features))
+        X_train, x_test = feature_engineer.execute_strategy(X_train,X_test)
 
     elif strategy == "binaryencoding":
         feature_engineer = FeatureEngineer(
-            LabelEncodingTarget("Attack Type", Binary=True)
+            LabelEncodingTarget(binary=True)
         )
+        print(y_train.name)
+        print(y_test.name)
+        y_train, y_test = feature_engineer.execute_strategy(y_train, y_test)
         
     elif strategy == "multiclassencoding":
         feature_engineer = FeatureEngineer(
-            LabelEncodingTarget("Attack Type", Binary=False)
+            LabelEncodingTarget(binary=False)
         )
+        y_train, y_test = feature_engineer.execute_strategy(y_train, y_test)
         
     else:
         raise ValueError(f"Unsupported feature engineering strategy:{strategy}")
 
-    X_train, X_test = feature_engineer.execute_strategy(X_train,X_test)
     
     return X_train, X_test, y_train, y_test

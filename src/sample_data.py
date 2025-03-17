@@ -27,7 +27,7 @@ class SamplingDataset(ABC):
 class SampleNidsData(SamplingDataset):
 
     def sample_data(
-        self, df: pd.DataFrame, sample_size=0.02, random_state=42
+        self, df: pd.DataFrame, sample_size=0.05, random_state=42
     ) -> pd.DataFrame:
         """Performs stratified sampling on the dataset.
 
@@ -40,6 +40,8 @@ class SampleNidsData(SamplingDataset):
             pd.DataFrame: The sampled dataframe.
         """
         logging.info(f"Original size of dataset: {len(df)}")
+
+        df = df.reset_index(drop=True)
 
         if isinstance(sample_size, float) and sample_size < 1.0:
             sampled_indices = self.stratified_sample_indices(
@@ -85,7 +87,7 @@ class SampleNidsData(SamplingDataset):
 
         for label in unique_labels:
             label_indices = labels[labels == label].index.tolist()
-            n_samples = int(len(label_indices) * sample_size)
+            n_samples = min(int(len(label_indices) * sample_size),len(label_indices))
             n_samples = max(1, n_samples)  # Ensure at least one sample per class
             sampled_indices = np.random.choice(
                 label_indices, size=n_samples, replace=False
@@ -167,8 +169,8 @@ class SampleNidsData(SamplingDataset):
 
 class Sampler:
     @staticmethod
-    def execute_sampling(self, df: pd.DataFrame, sample_size: float, random_state: int):
+    def execute_sampling(df: pd.DataFrame, sample_size: float, random_state: int):
         """Executes the sampling of data,"""
 
         sampler = SampleNidsData()
-        sampler.sample_data(df, sample_size, random_state)
+        return sampler.sample_data(df, sample_size, random_state)

@@ -85,17 +85,16 @@ class OneHotEncoding(FeatureEngineeringStrategy):
 
 
 class LabelEncodingTarget(FeatureEngineeringStrategy):
-    def __init__(self, target: str, binary: bool = False):
+    def __init__(self,binary: bool = False):
         """Initializes the feature for performing label encoding.
 
         Args:
             target (str): The target column name.
             binary (bool): Whether to perform binary encoding (BENIGN vs attack).
         """
-        self.target = target
         self.binary = binary
 
-    def apply_transformation(self, y_train: pd.DataFrame, y_test: pd.DataFrame) -> Tuple[pd.Series, pd.Series]:
+    def apply_transformation(self, y_train: pd.Series, y_test: pd.Series) -> Tuple[pd.Series, pd.Series]:
         """Performs label encoding on the given dataframe.
 
         Args:
@@ -109,15 +108,19 @@ class LabelEncodingTarget(FeatureEngineeringStrategy):
         y_test = y_test.copy()
 
         if self.binary:
-            y_train[self.target] = y_train[self.target].apply(lambda x: 0 if x == "BENIGN" else 1)
-            y_test[self.target] = y_test[self.target].apply(lambda x: 0 if x == "BENIGN" else 1)
+            y_train_updated = y_train.apply(lambda x: 0 if x == "BENIGN" else 1)
+            y_train = pd.Series(y_train_updated)
+            y_test_updated = y_test.apply(lambda x: 0 if x == "BENIGN" else 1)
+            y_test = pd.Series(y_test_updated)
             logging.info("Binary encoding of target feature successfully performed.")
             logging.info("Binary encoding completed: 'BENIGN' → 0, 'ATTACK' → 1")
 
         else:
             self.encoder = LabelEncoder()
-            y_train[self.target] = self.encoder.fit_transform(y_train[self.target])
-            y_test[self.target] = self.encoder.transform(y_test[self.target]) 
+            y_train_updated = self.encoder.fit_transform(y_train)
+            y_train = pd.Series(y_train_updated)
+            y_test_updated = self.encoder.transform(y_test) 
+            y_test = pd.Series(y_test_updated)
             
             encoding_map = dict(zip(self.encoder.classes_, self.encoder.transform(self.encoder.classes_)))
             logging.info(f"Multiclass label encoding mapping: {encoding_map}")
@@ -137,9 +140,9 @@ class FeatureEngineer:
         """Sets the strategy based on which the feature engineering is performed"""
         self._strategy = strategy
 
-    def execute_strategy(self, df: pd.DataFrame):
+    def execute_strategy(self, df1, df2):
         """Executes the strategy to perform feature engineering on the dataframe"""
-        return self._strategy.apply_transformation(df)
+        return self._strategy.apply_transformation(df1, df2)
 
 
 if __name__ == "__main__":

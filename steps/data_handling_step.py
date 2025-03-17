@@ -55,7 +55,7 @@ def handling_data(
     missing_features = [col for col in numeric_df.columns if transformed_df[col].isnull().any()]
 
     if missing_features:
-        handler4 = FillingMissingValues(method=filling_strategy, fill_value=fill_value)
+        handler4 = Handler(FillingMissingValues(method=filling_strategy, fill_value=fill_value))
 
         if filling_strategy not in ["mean", "median", "mode", "constant"]:
             raise ValueError(f"Unsupported missing value handling strategy: {filling_strategy}")
@@ -66,6 +66,6 @@ def handling_data(
 
     # Downcasting
     handler5 = Handler(DownCasting())
-    downcasted_df = handler5.execute_strategy(transformed_df)
+    downcasted_df = handler5.execute_strategy(transformed_df,features=None)
 
     return downcasted_df  

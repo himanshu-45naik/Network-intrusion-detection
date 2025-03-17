@@ -21,7 +21,7 @@ class ZipDataIngester(Ingest_Data):
 
     def ingest_df(self, data_path: str) -> pd.DataFrame:
         """Converts .zip file and returns data in pd.DataFrame format"""
-
+        print(data_path)
         # Ensure data is in zip format
         if not data_path.endswith(".zip"):
             raise ValueError("The provided file is not a .zip file.")

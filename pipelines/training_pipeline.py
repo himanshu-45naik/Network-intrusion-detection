@@ -14,10 +14,11 @@ from steps.mlflow_tracking_step import mlflow_tracker
 from steps.model_downloader import download_model_from_mlflow
 from steps.sample_data_step import sampling_data
 
-load_dotenv(dotenv_path="./config/.env")
+load_dotenv(dotenv_path=".env")
 
 DATA_PATH = os.getenv("DATA_PATH")
-MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI")
+print((DATA_PATH))
+MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URL")
 MLFLOW_EXPERIMENT_NAME = os.getenv("MLFLOW_EXPERIMENT_NAME")
 
 
@@ -33,9 +34,9 @@ def ml_pipeline():
     raw_df = data_ingestion(DATA_PATH)
     
     # Data Handling step.
-    processed_df = handling_data(raw_df)
+    processed_df = handling_data(raw_df,"mean",fill_value=None)
     # Sample Dataset
-    sampled_df = sampling_data(processed_df, sample_size=0.03, random_state=42)
+    sampled_df = sampling_data(processed_df, sample_size=0.05, random_state=42)
 
     # Dropping feature step
     modified_df = drop_feature(sampled_df)
@@ -157,6 +158,7 @@ def ml_pipeline():
     print(f"Model saved to: {xgb_multi_model_path}")
 
     # Model building step (lighgbm bianry classification)
+    """
     lgbm_binary_model = model_building(X_train_binary, y_train_binary, "lgbm_binary")
 
     # Log lightgbm model to mlflow
@@ -170,12 +172,10 @@ def ml_pipeline():
     )
     lgbm_bi_model_path = download_model_from_mlflow(lgbm_bi_run_id, "lgbm_binary")
     print(f"Model saved to: {lgbm_bi_model_path}")
-
     # Model building step (xgboost multiclass classification)
     lgbm_multiclass_model = model_building(
         X_train_multiclass, y_train_multiclass, "lgbm_multiclass"
     )
-
     # Log lgbm multiclass model to mlflow
     lgbm_multi_run_id = mlflow_tracker(
         model=lgbm_multiclass_model,
@@ -190,6 +190,7 @@ def ml_pipeline():
     )
     print(f"Model saved to: {lgbm_multi_model_path}")
 
+    """
 
 if __name__ == "__main__":
     pass

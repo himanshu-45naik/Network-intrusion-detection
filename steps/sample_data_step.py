@@ -9,5 +9,5 @@ def sampling_data(
 ) -> pd.DataFrame:
     """Executes sampling on the data."""
 
-    sample_data = sample_data(df, sample_size, random_state)
+    sample_data = Sampler.execute_sampling(df, sample_size, random_state)
     return sample_data

@@ -57,7 +57,6 @@ class ReplaceFeatureNames(HandlingStrategy):
 
         df["Attack Type"] = df["Label"].map(attack_map)
         df.drop("Label", axis=1, inplace=True)
-
         return df
 
 class DropDuplicateValues(HandlingStrategy):
@@ -90,7 +89,7 @@ class ReplaceInfinteValues(HandlingStrategy):
         df_cleaned = df.copy()
         df_cleaned[features] = df_cleaned[features].replace([np.inf, -np.inf], np.nan)
         logging.info(f"Infinite values replaced with Nan for features {features}.")
-        logging.ingo(f"Shape of dataframe after replacing infinte values ")
+        logging.info(f"Shape of dataframe after replacing infinte values ")
         return df_cleaned
 
 
