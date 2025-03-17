@@ -54,6 +54,8 @@ class SimpleTrainTestSplitStrategy(DataSplittingStrategy):
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=self.test_size, random_state=self.random_state
         )
+        y_train.name = target_column
+        y_test.name = target_column
 
         logging.info("Train-test split completed.")
         return X_train, X_test, y_train, y_test

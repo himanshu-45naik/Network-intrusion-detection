@@ -14,7 +14,7 @@ from steps.mlflow_tracking_step import mlflow_tracker
 from steps.model_downloader import download_model_from_mlflow
 from steps.sample_data_step import sampling_data
 
-load_dotenv(dotenv_path=".env")
+load_dotenv(dotenv_path="config/.env")
 
 DATA_PATH = os.getenv("DATA_PATH")
 print((DATA_PATH))

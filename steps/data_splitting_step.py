@@ -12,5 +12,5 @@ def data_splitting(
 
     splitter = DataSplitter(strategy=SimpleTrainTestSplitStrategy())
     X_train, X_test, y_train, y_test = splitter.split(df, target_column)
-        
+    print(y_train.name)
     return X_train, X_test, y_train, y_test

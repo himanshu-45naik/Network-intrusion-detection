@@ -47,7 +47,7 @@ class PCAFeatureReduction:
         transformed_data = self.ipca.transform(X)
         return pd.DataFrame(transformed_data, columns=[f"PC{i+1}" for i in range(self.ipca.n_components_)])
 
-    def fit_transform(self, X_train: pd.DataFrame, X_test: pd.DataFrame, y_train: pd.Series, y_test: pd.Series)-> Tuple[pd.DataFrame, pd.DataFrame]:
+    def fit_transform(self, X_train: pd.DataFrame, X_test: pd.DataFrame)-> Tuple[pd.DataFrame, pd.DataFrame]:
         """Fits PCA on X_train and transforms both X_train and X_test.
 
         Args:
@@ -63,10 +63,6 @@ class PCAFeatureReduction:
 
         X_train_pca = self.transform(X_train)
         X_test_pca = self.transform(X_test)
-
-        # Retain labels
-        X_train_pca["Attack Type"] = y_train.values
-        X_test_pca["Attack Type"] = y_test.values
 
         logging.info(f"PCA transformation applied to training and testing datasets.")
 

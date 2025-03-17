@@ -41,6 +41,8 @@ class SampleNidsData(SamplingDataset):
         """
         logging.info(f"Original dataset size: {len(df)}")
 
+        df = df.reset_index(drop=True)
+        
         if isinstance(sample_size, float) and sample_size < 1.0:
             sampled_indices = self.stratified_sample_indices(
                 df["Attack Type"], sample_size, random_state
@@ -57,6 +59,9 @@ class SampleNidsData(SamplingDataset):
 
         # Ensure the "Attack Type" column name is preserved
         sampled_df["Attack Type"] = sampled_df["Attack Type"].astype("category")
+
+        # Debugging: Print column name after sampling
+        logging.info(f"After sampling, 'Attack Type' column name: {sampled_df['Attack Type'].name}")
 
         self.validate_sample_diversity(df["Attack Type"], sampled_df["Attack Type"])
 
@@ -82,6 +87,7 @@ class SampleNidsData(SamplingDataset):
         indices : list
             List of sampled indices.
         """
+        labels.name = "Attack Type" 
         unique_labels = labels.unique()
         indices = []
         np.random.seed(random_state)
@@ -104,6 +110,9 @@ class SampleNidsData(SamplingDataset):
         by comparing class distributions.
         """
         logging.info("\n--- Sample Diversity Validation ---")
+
+        original_labels.name = "Attack Type"
+        sampled_labels.name = "Attack Type"
 
         # Count occurrences of each class
         original_counts = Counter(original_labels)
@@ -173,4 +182,9 @@ class Sampler:
         """Executes the sampling of data."""
 
         sampler = SampleNidsData()
-        return sampler.sample_data(df, sample_size, random_state)
+        sampled_df = sampler.sample_data(df, sample_size, random_state)
+
+        # Debugging: Ensure column names persist after sampling
+        logging.info(f"Final 'Attack Type' column name: {sampled_df['Attack Type'].name}")
+
+        return sampled_df

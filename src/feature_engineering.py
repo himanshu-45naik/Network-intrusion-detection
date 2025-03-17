@@ -41,13 +41,17 @@ class StandardScaling(FeatureEngineeringStrategy):
             pd.DataFrame: The transformed dataframe
         """
 
-        logging.info(f"Applying Standard scaling to features: {self.features}")
+        logging.info(f"Applying Standard scaling to features")
         scaler = StandardScaler()
 
         scaler.fit(X_train)
+        original_feature_names = X_train.columns.tolist()
 
         X_train_scaled = scaler.transform(X_train)
         X_test_scaled = scaler.transform(X_test)
+        
+        X_train_scaled = pd.DataFrame(X_train_scaled, columns=original_feature_names)
+        X_test_scaled = pd.DataFrame(X_test_scaled, columns=original_feature_names)
 
         logging.info("Standard scaling applied")
 
@@ -95,12 +99,12 @@ class LabelEncodingTarget(FeatureEngineeringStrategy):
         self.target = target
         self.binary = binary
 
-    def apply_transformation(self, y_train: pd.DataFrame, y_test: pd.DataFrame) -> Tuple[pd.Series, pd.Series]:
-        """Performs label encoding on the given dataframe.
+    def apply_transformation(self, y_train: pd.Series, y_test: pd.Series) -> Tuple[pd.Series, pd.Series]:
+        """Performs label encoding on the given Series.
 
         Args:
-            y_train (pd.DataFrame): Training target labels.
-            y_test (pd.DataFrame): Testing target labels.
+            y_train (pd.Series): Training target labels.
+            y_test (pd.Series): Testing target labels.
 
         Returns:
             tuple: Transformed y_train, y_test, and the label encoder (for reference).
@@ -109,20 +113,28 @@ class LabelEncodingTarget(FeatureEngineeringStrategy):
         y_test = y_test.copy()
 
         if self.binary:
-            y_train[self.target] = y_train[self.target].apply(lambda x: 0 if x == "BENIGN" else 1)
-            y_test[self.target] = y_test[self.target].apply(lambda x: 0 if x == "BENIGN" else 1)
+            y_train_updated = y_train.apply(lambda x: 0 if x == "BENIGN" else 1)
+            y_train = pd.Series(y_train_updated, name="Attack Type")
+            y_test_updated = y_test.apply(lambda x: 0 if x == "BENIGN" else 1)
+            y_test = pd.Series(y_test_updated, name="Attack Type")
+ 
             logging.info("Binary encoding of target feature successfully performed.")
+ 
             logging.info("Binary encoding completed: 'BENIGN' → 0, 'ATTACK' → 1")
 
         else:
             self.encoder = LabelEncoder()
-            y_train[self.target] = self.encoder.fit_transform(y_train[self.target])
-            y_test[self.target] = self.encoder.transform(y_test[self.target]) 
+                        
+            y_train_updated = self.encoder.fit_transform(y_train)
+            y_train = pd.Series(y_train_updated, name="Attack Type")
+            y_test_updated = self.encoder.transform(y_test) 
+            y_test = pd.Series(y_test_updated, name="Attack Type")
+            
+            logging.info("Multiclass encoding of target feature successfully performed.")
             
             encoding_map = dict(zip(self.encoder.classes_, self.encoder.transform(self.encoder.classes_)))
             logging.info(f"Multiclass label encoding mapping: {encoding_map}")
-            logging.info("Label encoding for multiclass classification successfully performed.")
-
+    
         return y_train, y_test
 
 
@@ -137,9 +149,9 @@ class FeatureEngineer:
         """Sets the strategy based on which the feature engineering is performed"""
         self._strategy = strategy
 
-    def execute_strategy(self, df: pd.DataFrame):
+    def execute_strategy(self, df1, df2):
         """Executes the strategy to perform feature engineering on the dataframe"""
-        return self._strategy.apply_transformation(df)
+        return self._strategy.apply_transformation(df1, df2)
 
 
 if __name__ == "__main__":

@@ -9,4 +9,5 @@ def drop_feature(df:pd.DataFrame)->pd.DataFrame:
     dropper = (DropOneValueFeature())
     num_unique = df.nunique()
     updated_df = dropper.drop_features(df, num_unique)
+    print(updated_df.columns)
     return updated_df
