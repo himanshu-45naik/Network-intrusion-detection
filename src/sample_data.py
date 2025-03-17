@@ -27,7 +27,7 @@ class SamplingDataset(ABC):
 class SampleNidsData(SamplingDataset):
 
     def sample_data(
-        self, df: pd.DataFrame, sample_size=0.05, random_state=42
+        self, df: pd.DataFrame, sample_size=0.02, random_state=42
     ) -> pd.DataFrame:
         """Performs stratified sampling on the dataset.
 
@@ -39,9 +39,7 @@ class SampleNidsData(SamplingDataset):
         Returns:
             pd.DataFrame: The sampled dataframe.
         """
-        logging.info(f"Original size of dataset: {len(df)}")
-
-        df = df.reset_index(drop=True)
+        logging.info(f"Original dataset size: {len(df)}")
 
         if isinstance(sample_size, float) and sample_size < 1.0:
             sampled_indices = self.stratified_sample_indices(
@@ -54,8 +52,11 @@ class SampleNidsData(SamplingDataset):
             )
             sampled_df = df.iloc[sampled_indices]
         else:
-            sampled_df = df
+            sampled_df = df.copy()  # Ensuring a proper copy is returned
             logging.warning("Invalid sample_size, using the entire dataset.")
+
+        # Ensure the "Attack Type" column name is preserved
+        sampled_df["Attack Type"] = sampled_df["Attack Type"].astype("category")
 
         self.validate_sample_diversity(df["Attack Type"], sampled_df["Attack Type"])
 
@@ -87,7 +88,7 @@ class SampleNidsData(SamplingDataset):
 
         for label in unique_labels:
             label_indices = labels[labels == label].index.tolist()
-            n_samples = min(int(len(label_indices) * sample_size),len(label_indices))
+            n_samples = int(len(label_indices) * sample_size)
             n_samples = max(1, n_samples)  # Ensure at least one sample per class
             sampled_indices = np.random.choice(
                 label_indices, size=n_samples, replace=False
@@ -101,7 +102,6 @@ class SampleNidsData(SamplingDataset):
         """
         Validate that the sampled dataset represents the diversity of the original dataset
         by comparing class distributions.
-
         """
         logging.info("\n--- Sample Diversity Validation ---")
 
@@ -120,7 +120,7 @@ class SampleNidsData(SamplingDataset):
         comparison_data = []
         for cls in classes:
             orig_pct = (original_counts.get(cls, 0) / total_original) * 100
-            samp_pct = (sampled_counts.get(cls, 0) / total_sampled) * 100
+            samp_pct = (sampled_counts.get(cls, 0) / total_sampled) * 100 if total_sampled > 0 else 0
 
             comparison_data.append(
                 {
@@ -151,26 +151,26 @@ class SampleNidsData(SamplingDataset):
         logging.info("\nValidation Results:")
         if max_sampling_diff < 1.0:
             logging.info(
-                "✓ SAMPLING: Excellent representation of original class distribution (max difference < 1%)"
+                "SAMPLING: Excellent representation of original class distribution (max difference < 1%)"
             )
         elif max_sampling_diff < 3.0:
             logging.info(
-                "✓ SAMPLING: Good representation of original class distribution (max difference < 3%)"
+                "SAMPLING: Good representation of original class distribution (max difference < 3%)"
             )
         elif max_sampling_diff < 5.0:
             logging.warning(
-                "⚠ SAMPLING: Moderate deviations in class distribution (max difference < 5%)"
+                "SAMPLING: Moderate deviations in class distribution (max difference < 5%)"
             )
         else:
             logging.error(
-                "✗ SAMPLING: Significant deviations in class distribution (max difference >= 5%)"
+                "SAMPLING: Significant deviations in class distribution (max difference >= 5%)"
             )
 
 
 class Sampler:
     @staticmethod
     def execute_sampling(df: pd.DataFrame, sample_size: float, random_state: int):
-        """Executes the sampling of data,"""
+        """Executes the sampling of data."""
 
         sampler = SampleNidsData()
         return sampler.sample_data(df, sample_size, random_state)
