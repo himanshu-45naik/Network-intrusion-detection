@@ -1,7 +1,7 @@
 import pandas as pd
 from typing import Tuple
 from abc import ABC, abstractmethod
-from imblearn.combine import SMOTE
+from imblearn.over_sampling import SMOTE
 import logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s-%(levelname)s-%(message)s")
 
@@ -38,9 +38,17 @@ class SyntheticMinortyOverSampling(SamplingStrategy):
         logging.info(f"Before resampling X_train shape: {x_train.shape}, y_train shape: {y_train.shape}")
         logging.info(f"Unique classes in y_train: {y_train.unique()}")
         
+        # Ensure x_train and y_train have the same number of rows
+        if len(x_train) != len(y_train):
+            raise ValueError(f"x_train and y_train must have same length, got {len(x_train)} and {len(y_train)}")
+        
+        # Reset indices to ensure alignment
+        x_train = x_train.reset_index(drop=True)
+        y_train = y_train.reset_index(drop=True)
+        
         # Count samples per class
         class_counts = y_train.value_counts()
-        min_samples_needed = 6 
+        min_samples_needed = 6  # Minimum samples needed for SMOTE
         
         # Identify classes with too few samples
         small_classes = class_counts[class_counts < min_samples_needed].index.tolist()
@@ -52,20 +60,21 @@ class SyntheticMinortyOverSampling(SamplingStrategy):
             mask_for_smote = ~y_train.isin(small_classes)
             
             if mask_for_smote.sum() > 0:
-                x_smote = x_train[mask_for_smote]
-                y_smote = y_train[mask_for_smote]
+                # Apply SMOTE only to classes with sufficient samples
+                x_smote = x_train.loc[mask_for_smote]
+                y_smote = y_train.loc[mask_for_smote]
                 
                 logging.info(f"Applying SMOTE to {len(y_smote.unique())} classes with sufficient samples")
                 resampler = SMOTE(random_state=42)
                 x_resampled_smote, y_resampled_smote = resampler.fit_resample(x_smote, y_smote)
                 
                 # Keep the small classes as they are
-                x_small = x_train[~mask_for_smote]
-                y_small = y_train[~mask_for_smote]
+                x_small = x_train.loc[~mask_for_smote]
+                y_small = y_train.loc[~mask_for_smote]
                 
                 # Combine the SMOTE-processed data with the untouched small classes
-                x_resampled = pd.concat([pd.DataFrame(x_resampled_smote, columns=x_train.columns), x_small])
-                y_resampled = pd.concat([pd.Series(y_resampled_smote, name=y_train.name), y_small])
+                x_resampled = pd.concat([pd.DataFrame(x_resampled_smote, columns=x_train.columns), x_small], ignore_index=True)
+                y_resampled = pd.concat([pd.Series(y_resampled_smote, name=y_train.name), y_small], ignore_index=True)
             else:
                 # If all classes are small, return the original data
                 logging.info("All classes have insufficient samples. Returning original data.")
