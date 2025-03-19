@@ -51,7 +51,7 @@ class XgbModel(ModelBuildingStrategy):
                 ),
             ]
         )
-        cv = StratifiedKFold(n_splits=2, shuffle=True, random_state=42)
+        cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
         
         grid_search = GridSearchCV(
             pipeline, param_grid, cv=cv, scoring="accuracy", verbose=3, n_jobs=1

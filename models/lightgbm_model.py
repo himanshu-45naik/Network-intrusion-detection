@@ -1,5 +1,8 @@
 import pandas as pd
+import numpy as np
 import logging
+import warnings
+warnings.filterwarnings("ignore")
 from models.base_model import ModelBuildingStrategy
 import lightgbm as lgb
 from sklearn.pipeline import Pipeline
@@ -29,26 +32,29 @@ class LgbModel(ModelBuildingStrategy):
         param_grid = {
             "lgb__n_estimators": [100, 200],
             "lgb__learning_rate": [0.01, 0.1],
-            "lgb__max_depth": [3, 5, 7],
+            "lgb__max_depth": [5, 10, 15],
+            "lgb__min_child_samples": [1, 5, 10],
             "lgb__subsample": [0.8, 1.0],
         }
 
+        feature_names = X_train.columns.tolist()
+
         if self.binary_class:
             objective = "binary"
-            num_class = None
+            metric = "binary_logloss"
+            lgb_model = lgb.LGBMClassifier(objective=objective, metric=metric, verbose=-1)
         else:
             objective = "multiclass"
+            metric = "multi_logloss"
             num_class = len(y_train.unique())
+            lgb_model = lgb.LGBMClassifier(
+                objective=objective, num_class=num_class, metric=metric, verbose=-1
+            )
 
         pipeline = Pipeline(
             [
                 ("scaler", StandardScaler()),
-                (
-                    "lgb",
-                    lgb.LGBMClassifier(
-                        objective=objective, num_class=num_class, metric="multi_logloss"
-                    ),
-                ),
+                ("lgb", lgb_model),
             ]
         )
         cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)

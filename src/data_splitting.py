@@ -25,7 +25,7 @@ class DataSplittingStrategy(ABC):
 
 
 class SimpleTrainTestSplitStrategy(DataSplittingStrategy):
-    def __init__(self, test_size=0.2, random_state=42):
+    def __init__(self, test_size=0.35, random_state=42):
         """
         Initializes the SimpleTrainTestSplitStrategy with specific parameters.
 

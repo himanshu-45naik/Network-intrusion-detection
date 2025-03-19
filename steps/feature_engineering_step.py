@@ -38,8 +38,6 @@ def feature_engineering(
         feature_engineer = FeatureEngineer(
             LabelEncodingTarget(target ="Attack Type", binary=True, rare_threshold=100)
         )
-        print(y_train.name)
-        print(y_test.name)
         y_train, y_test = feature_engineer.execute_strategy(y_train, y_test)
         
     elif strategy == "multiclassencoding":

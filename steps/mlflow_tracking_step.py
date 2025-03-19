@@ -18,7 +18,7 @@ def mlflow_tracker(model: Pipeline, model_name: str, X_test:pd.DataFrame, y_test
     """
     if model_name == "logisticregression":
         tracker = ModelTracker()
-    elif model_name == "oc-svm":
+    elif model_name == "oc_svm":
         tracker = ModelTracker()
     elif model_name == "rf_binary":
         tracker = ModelTracker()

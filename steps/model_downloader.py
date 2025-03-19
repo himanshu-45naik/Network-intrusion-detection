@@ -1,10 +1,14 @@
 import os
 import mlflow
+from dotenv import load_dotenv
 from mlflow.tracking import MlflowClient
 from zenml import step
 
+load_dotenv(dotenv_path="config/.env")
+MODEL_DOWNLOAD_PATH = os.getenv("MODEL_DOWNLOAD_PATH")
+
 @step
-def download_model_from_mlflow(run_id, model_name, output_dir="/home/himanshu/Coding/Network Intrusion/saved_models"):
+def download_model_from_mlflow(run_id, model_name, output_dir="/home/himanshu/Network-intrusion-detection/saved_models"):
     """
     Download a trained model from MLflow to the saved_model directory.
     

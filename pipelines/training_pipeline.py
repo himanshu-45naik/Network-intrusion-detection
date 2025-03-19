@@ -17,7 +17,6 @@ from steps.sample_data_step import sampling_data
 load_dotenv(dotenv_path="config/.env")
 
 DATA_PATH = os.getenv("DATA_PATH")
-print((DATA_PATH))
 MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URL")
 MLFLOW_EXPERIMENT_NAME = os.getenv("MLFLOW_EXPERIMENT_NAME")
 
@@ -26,9 +25,6 @@ MLFLOW_EXPERIMENT_NAME = os.getenv("MLFLOW_EXPERIMENT_NAME")
 def ml_pipeline():
     """Defines end-to-end machine learning pipeline with MLflow tracking."""
 
-    ## Check feature engineering steps fucntion call
-    ## Check data handling function calling
-    ## Carry out all the feature cleaning -- nan infinity feature name and duplicate in one script.
 
     # Data Ingestion step
     raw_df = data_ingestion(DATA_PATH)
@@ -123,7 +119,7 @@ def ml_pipeline():
     rf_multi_model_path = download_model_from_mlflow(rf_multi_run_id, "rf_multiclass")
     print(f"Model saved to: {rf_bi_model_path}")
 
-    # # Model building step (xgboost binary classfication)
+    # Model building step (xgboost binary classfication)
     xgb_binary_model = model_building(X_train_binary, y_train_binary, "xgb_binary")
 
     # Log xgb binary model to MLflow
@@ -158,7 +154,6 @@ def ml_pipeline():
     print(f"Model saved to: {xgb_multi_model_path}")
 
     # Model building step (lighgbm bianry classification)
-    """
     lgbm_binary_model = model_building(X_train_binary, y_train_binary, "lgbm_binary")
 
     # Log lightgbm model to mlflow
@@ -172,6 +167,7 @@ def ml_pipeline():
     )
     lgbm_bi_model_path = download_model_from_mlflow(lgbm_bi_run_id, "lgbm_binary")
     print(f"Model saved to: {lgbm_bi_model_path}")
+    
     # Model building step (xgboost multiclass classification)
     lgbm_multiclass_model = model_building(
         X_train_multiclass, y_train_multiclass, "lgbm_multiclass"
@@ -189,7 +185,23 @@ def ml_pipeline():
         lgbm_multi_run_id, "lgbm_multiclass"
     )
     print(f"Model saved to: {lgbm_multi_model_path}")
-    """
-
+    
+    # oc_svm model building step
+    oc_svm = model_building(X_train_multiclass, y_train_multiclass, "oc_svm")
+    
+    # Log oc_svm model to mlflow
+    oc_svm_run_id = mlflow_tracker(
+        model=oc_svm,
+        model_name="oc_svm",
+        X_test=X_test_multiclass,
+        y_test=y_test_multiclass,
+        tracking_uri=MLFLOW_TRACKING_URI,
+        experiment_name=MLFLOW_EXPERIMENT_NAME,
+    )
+    oc_svm_model_path = download_model_from_mlflow(
+        oc_svm_run_id, "oc_svm"
+    )
+    print(f"Model saved to: {oc_svm_model_path}")
+    
 if __name__ == "__main__":
     pass
