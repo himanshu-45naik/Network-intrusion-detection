@@ -41,6 +41,18 @@ This repository contains a complete ML pipeline for network intrusion detection.
    zenml login --"local"
    ```
 
+5. **Configure environment**
+
+   Copy the example config and adjust if needed:
+
+   ```
+   cp config/.env.example config/.env
+   ```
+
+   Place the CICIDS2017 zip (MachineLearningCSV.zip) at the path set in `DATA_PATH`
+   (default: `data/MachineLearningCSV.zip`). The `data/` directory and `config/.env`
+   are gitignored.
+
 ## Project Structure
 
 - **`run_pipeline.py`**: Entry point to run the ML pipeline
@@ -105,6 +117,7 @@ The pipeline includes SMOTE (Synthetic Minority Over-sampling Technique) to hand
 ```python
 # To apply SMOTE:
 from steps.oversampling_data_step import sampling_data
+
 x_resampled, y_resampled = sampling_data(x_train, y_train)
 ```
 

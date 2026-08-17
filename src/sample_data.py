@@ -1,13 +1,12 @@
-import pandas as pd
-import numpy as np
 import logging
 from abc import ABC, abstractmethod
 from collections import Counter
 
+import numpy as np
+import pandas as pd
+
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 
 class SamplingDataset(ABC):
@@ -25,10 +24,7 @@ class SamplingDataset(ABC):
 
 
 class SampleNidsData(SamplingDataset):
-
-    def sample_data(
-        self, df: pd.DataFrame, sample_size=0.02, random_state=42
-    ) -> pd.DataFrame:
+    def sample_data(self, df: pd.DataFrame, sample_size=0.02, random_state=42) -> pd.DataFrame:
         """Performs stratified sampling on the dataset.
 
         Args:
@@ -42,7 +38,7 @@ class SampleNidsData(SamplingDataset):
         logging.info(f"Original dataset size: {len(df)}")
 
         df = df.reset_index(drop=True)
-        
+
         if isinstance(sample_size, float) and sample_size < 1.0:
             sampled_indices = self.stratified_sample_indices(
                 df["Attack Type"], sample_size, random_state
@@ -69,9 +65,7 @@ class SampleNidsData(SamplingDataset):
         return sampled_df
 
     @staticmethod
-    def stratified_sample_indices(
-        labels: pd.Series, sample_size: float, random_state=42
-    ):
+    def stratified_sample_indices(labels: pd.Series, sample_size: float, random_state=42):
         """
         Create indices for a stratified sample of the dataset.
 
@@ -87,7 +81,7 @@ class SampleNidsData(SamplingDataset):
         indices : list
             List of sampled indices.
         """
-        labels.name = "Attack Type" 
+        labels.name = "Attack Type"
         unique_labels = labels.unique()
         indices = []
         np.random.seed(random_state)
@@ -96,9 +90,7 @@ class SampleNidsData(SamplingDataset):
             label_indices = labels[labels == label].index.tolist()
             n_samples = int(len(label_indices) * sample_size)
             n_samples = max(1, n_samples)  # Ensure at least one sample per class
-            sampled_indices = np.random.choice(
-                label_indices, size=n_samples, replace=False
-            )
+            sampled_indices = np.random.choice(label_indices, size=n_samples, replace=False)
             indices.extend(sampled_indices)
 
         return indices
@@ -129,7 +121,9 @@ class SampleNidsData(SamplingDataset):
         comparison_data = []
         for cls in classes:
             orig_pct = (original_counts.get(cls, 0) / total_original) * 100
-            samp_pct = (sampled_counts.get(cls, 0) / total_sampled) * 100 if total_sampled > 0 else 0
+            samp_pct = (
+                (sampled_counts.get(cls, 0) / total_sampled) * 100 if total_sampled > 0 else 0
+            )
 
             comparison_data.append(
                 {

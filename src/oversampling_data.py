@@ -1,8 +1,10 @@
-import pandas as pd
-from typing import Tuple
-from abc import ABC, abstractmethod
-from imblearn.over_sampling import SMOTE
 import logging
+from abc import ABC, abstractmethod
+from typing import Tuple
+
+import pandas as pd
+from imblearn.over_sampling import SMOTE
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s-%(levelname)s-%(message)s")
 
 
@@ -10,7 +12,9 @@ class SamplingStrategy(ABC):
     """Strategy for sampling unbalanced data."""
 
     @abstractmethod
-    def transform(self, x_train: pd.DataFrame, y_train: pd.DataFrame) -> Tuple[pd.DataFrame, pd.Series]:
+    def transform(
+        self, x_train: pd.DataFrame, y_train: pd.DataFrame
+    ) -> Tuple[pd.DataFrame, pd.Series]:
         """Performs sampling on data to convert it into balanced data.
 
         Args:
@@ -25,56 +29,69 @@ class SamplingStrategy(ABC):
 
 
 class SyntheticMinortyOverSampling(SamplingStrategy):
-    def transform(self, x_train: pd.DataFrame, y_train: pd.Series) -> Tuple[pd.DataFrame, pd.Series]:
+    def transform(
+        self, x_train: pd.DataFrame, y_train: pd.Series
+    ) -> Tuple[pd.DataFrame, pd.Series]:
         """Transforms the unbalanced data using SMOTE for classes with sufficient samples.
-        
+
         Args:
             x_train (pd.DataFrame): The unbalanced data.
             y_train (pd.Series): The unbalanced label data.
-        
+
         Returns:
             Tuple[pd.DataFrame, pd.Series]: The transformed balanced data.
         """
-        logging.info(f"Before resampling X_train shape: {x_train.shape}, y_train shape: {y_train.shape}")
+        logging.info(
+            f"Before resampling X_train shape: {x_train.shape}, y_train shape: {y_train.shape}"
+        )
         logging.info(f"Unique classes in y_train: {y_train.unique()}")
-        
+
         # Ensure x_train and y_train have the same number of rows
         if len(x_train) != len(y_train):
-            raise ValueError(f"x_train and y_train must have same length, got {len(x_train)} and {len(y_train)}")
-        
+            raise ValueError(
+                f"x_train and y_train must have same length, got {len(x_train)} and {len(y_train)}"
+            )
+
         # Reset indices to ensure alignment
         x_train = x_train.reset_index(drop=True)
         y_train = y_train.reset_index(drop=True)
-        
+
         # Count samples per class
         class_counts = y_train.value_counts()
         min_samples_needed = 6  # Minimum samples needed for SMOTE
-        
+
         # Identify classes with too few samples
         small_classes = class_counts[class_counts < min_samples_needed].index.tolist()
-        
+
         if small_classes:
             logging.info(f"Classes with fewer than {min_samples_needed} samples: {small_classes}")
-            
+
             # Create masks for samples to process with SMOTE and samples to keep as-is
             mask_for_smote = ~y_train.isin(small_classes)
-            
+
             if mask_for_smote.sum() > 0:
                 # Apply SMOTE only to classes with sufficient samples
                 x_smote = x_train.loc[mask_for_smote]
                 y_smote = y_train.loc[mask_for_smote]
-                
-                logging.info(f"Applying SMOTE to {len(y_smote.unique())} classes with sufficient samples")
+
+                logging.info(
+                    f"Applying SMOTE to {len(y_smote.unique())} classes with sufficient samples"
+                )
                 resampler = SMOTE(random_state=42)
                 x_resampled_smote, y_resampled_smote = resampler.fit_resample(x_smote, y_smote)
-                
+
                 # Keep the small classes as they are
                 x_small = x_train.loc[~mask_for_smote]
                 y_small = y_train.loc[~mask_for_smote]
-                
+
                 # Combine the SMOTE-processed data with the untouched small classes
-                x_resampled = pd.concat([pd.DataFrame(x_resampled_smote, columns=x_train.columns), x_small], ignore_index=True)
-                y_resampled = pd.concat([pd.Series(y_resampled_smote, name=y_train.name), y_small], ignore_index=True)
+                x_resampled = pd.concat(
+                    [pd.DataFrame(x_resampled_smote, columns=x_train.columns), x_small],
+                    ignore_index=True,
+                )
+                y_resampled = pd.concat(
+                    [pd.Series(y_resampled_smote, name=y_train.name), y_small], ignore_index=True
+                )
             else:
                 # If all classes are small, return the original data
                 logging.info("All classes have insufficient samples. Returning original data.")
@@ -86,11 +103,13 @@ class SyntheticMinortyOverSampling(SamplingStrategy):
             x_resampled, y_resampled = resampler.fit_resample(x_train, y_train)
             x_resampled = pd.DataFrame(x_resampled, columns=x_train.columns)
             y_resampled = pd.Series(y_resampled, name=y_train.name)
-        
+
         logging.info("Successfully performed resampling.")
-        logging.info(f"After resampling X_resampled shape: {x_resampled.shape}, y_resampled shape: {y_resampled.shape}")
+        logging.info(
+            f"After resampling X_resampled shape: {x_resampled.shape}, y_resampled shape: {y_resampled.shape}"
+        )
         logging.info(f"Unique classes in y_resampled: {y_resampled.unique()}")
-        
+
         return x_resampled, y_resampled
 
 

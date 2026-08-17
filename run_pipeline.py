@@ -1,4 +1,5 @@
 import click
+
 from pipelines.training_pipeline import ml_pipeline
 
 
@@ -8,7 +9,7 @@ def main():
     Run the ML pipeline
     """
 
-    run = ml_pipeline()
+    ml_pipeline()
 
 
 if __name__ == "__main__":

@@ -1,10 +1,19 @@
-from zenml import step
 import pandas as pd
 from sklearn.pipeline import Pipeline
-from src.mlflow_tracking import  ModelTracker
+from zenml import step
+
+from src.mlflow_tracking import ModelTracker
+
 
 @step
-def mlflow_tracker(model: Pipeline, model_name: str, X_test:pd.DataFrame, y_test: pd.Series, tracking_uri: str, experiment_name: str) -> str:
+def mlflow_tracker(
+    model: Pipeline,
+    model_name: str,
+    X_test: pd.DataFrame,
+    y_test: pd.Series,
+    tracking_uri: str,
+    experiment_name: str,
+) -> str:
     """Implements the mlflow tracking.
 
     Args:
@@ -30,8 +39,7 @@ def mlflow_tracker(model: Pipeline, model_name: str, X_test:pd.DataFrame, y_test
         tracker = ModelTracker()
     else:
         raise ValueError("Undefined Model.")
-    
+
     run_id = tracker.model_tracker(model, model_name, X_test, y_test, tracking_uri, experiment_name)
-    
-    return run_id    
-    
+
+    return run_id

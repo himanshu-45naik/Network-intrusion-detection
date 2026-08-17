@@ -1,11 +1,10 @@
 import logging
 from abc import ABC, abstractmethod
+
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 
 class DataSplittingStrategy(ABC):
@@ -93,7 +92,7 @@ class DataSplitter:
         X_train, X_test, y_train, y_test: The training and testing splits for features and target.
         """
         logging.info("Splitting data using the selected strategy.")
-        updated_df =  self._strategy.split_data(df, target_column)
+        updated_df = self._strategy.split_data(df, target_column)
         return updated_df
 
 

@@ -1,6 +1,7 @@
-from src.ingest_data import DataIngestorFactory
-from zenml import step
 import pandas as pd
+from zenml import step
+
+from src.ingest_data import DataIngestorFactory
 
 
 @step

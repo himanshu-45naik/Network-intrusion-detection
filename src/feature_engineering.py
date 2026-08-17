@@ -1,13 +1,13 @@
-import pandas as pd
 import logging
-from typing import Tuple
 from abc import ABC, abstractmethod
+from typing import Tuple
+
+import pandas as pd
 from sklearn.preprocessing import (
+    LabelEncoder,
     OneHotEncoder,
     StandardScaler,
-    LabelEncoder,
 )
-
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s-%(levelname)s-%(message)s")
 
@@ -28,7 +28,6 @@ class FeatureEngineeringStrategy(ABC):
 
 
 class StandardScaling(FeatureEngineeringStrategy):
-
     def apply_transformation(
         self, X_train: pd.DataFrame, X_test: pd.DataFrame
     ) -> Tuple[pd.DataFrame, pd.DataFrame]:
@@ -41,7 +40,7 @@ class StandardScaling(FeatureEngineeringStrategy):
             pd.DataFrame: The transformed dataframe
         """
 
-        logging.info(f"Applying Standard scaling to features")
+        logging.info("Applying Standard scaling to features")
         scaler = StandardScaler()
 
         scaler.fit(X_train)
@@ -49,7 +48,7 @@ class StandardScaling(FeatureEngineeringStrategy):
 
         X_train_scaled = scaler.transform(X_train)
         X_test_scaled = scaler.transform(X_test)
-        
+
         X_train_scaled = pd.DataFrame(X_train_scaled, columns=original_feature_names)
         X_test_scaled = pd.DataFrame(X_test_scaled, columns=original_feature_names)
 
@@ -72,9 +71,7 @@ class OneHotEncoding(FeatureEngineeringStrategy):
             df (pd.DataFrame): The dataframe containing the features
         """
 
-        logging.info(
-            f"Applying one hot encoding on the categorical features:{self.features}"
-        )
+        logging.info(f"Applying one hot encoding on the categorical features:{self.features}")
 
         df_transformed = df.copy()
         encoded_df = pd.DataFrame(
@@ -128,20 +125,25 @@ class LabelEncodingTarget:
             # Identify rare classes
             class_counts = y_train.value_counts()
             rare_classes = class_counts[class_counts < self.rare_threshold].index.tolist()
-            
+
             # Merge rare classes into 'Other_Attacks'
             y_train = y_train.apply(lambda x: "Other_Attacks" if x in rare_classes else x)
             y_test = y_test.apply(lambda x: "Other_Attacks" if x in rare_classes else x)
-            
+
             # Fit Label Encoder
             y_train_encoded = self.encoder.fit_transform(y_train)
             y_test_encoded = self.encoder.transform(y_test)
-            
-            encoding_map = dict(zip(self.encoder.classes_, self.encoder.transform(self.encoder.classes_)))
+
+            encoding_map = dict(
+                zip(self.encoder.classes_, self.encoder.transform(self.encoder.classes_))
+            )
             logging.info(f"Merged rare classes {rare_classes} into 'Other_Attacks'.")
             logging.info(f"Final label encoding mapping: {encoding_map}")
 
-        return pd.Series(y_train_encoded, name=self.target), pd.Series(y_test_encoded, name=self.target)
+        return pd.Series(y_train_encoded, name=self.target), pd.Series(
+            y_test_encoded, name=self.target
+        )
+
 
 class FeatureEngineer:
     def __init__(self, strategy):

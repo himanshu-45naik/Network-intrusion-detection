@@ -1,16 +1,17 @@
-from zenml import Model, pipeline
-from dotenv import load_dotenv
-import yaml
 import os
-from steps.data_ingestion_step import data_ingestion
+
+from dotenv import load_dotenv
+from zenml import Model, pipeline
+
 from steps.data_handling_step import handling_data
-from steps.feature_engineering_step import feature_engineering
+from steps.data_ingestion_step import data_ingestion
 from steps.data_splitting_step import data_splitting
 from steps.drop_features_step import drop_feature
-from steps.oversampling_data_step import over_sampling_data
-from steps.model_building_step import model_building
+from steps.feature_engineering_step import feature_engineering
 from steps.mlflow_tracking_step import mlflow_tracker
+from steps.model_building_step import model_building
 from steps.model_downloader import download_model_from_mlflow
+from steps.oversampling_data_step import over_sampling_data
 from steps.sample_data_step import sampling_data
 
 load_dotenv(dotenv_path="config/.env")
@@ -24,12 +25,11 @@ MLFLOW_EXPERIMENT_NAME = os.getenv("MLFLOW_EXPERIMENT_NAME")
 def ml_pipeline():
     """Defines end-to-end machine learning pipeline with MLflow tracking."""
 
-
     # Data Ingestion step
     raw_df = data_ingestion(DATA_PATH)
-    
+
     # Data Handling step.
-    processed_df = handling_data(raw_df,"mean",fill_value=None)
+    processed_df = handling_data(raw_df, "mean", fill_value=None)
     # Sample Dataset
     sampled_df = sampling_data(processed_df, sample_size=0.05, random_state=42)
 
@@ -40,16 +40,22 @@ def ml_pipeline():
     X_train_binary, X_test_binary, y_train_binary, y_test_binary = data_splitting(
         modified_df, "Attack Type"
     )
-    X_train_multiclass, X_test_multiclass, y_train_multiclass, y_test_multiclass = (
-        data_splitting(modified_df, "Attack Type")
+    X_train_multiclass, X_test_multiclass, y_train_multiclass, y_test_multiclass = data_splitting(
+        modified_df, "Attack Type"
     )
 
     # Label encoding for binary classification step
     X_train_binary, X_test_binary, y_train_binary, y_test_binary = feature_engineering(
         X_train_binary, X_test_binary, y_train_binary, y_test_binary, "binaryencoding"
     )
-    X_train_multiclass, X_test_multiclass, y_train_multiclass, y_test_multiclass = feature_engineering(
-        X_train_multiclass, X_test_multiclass, y_train_multiclass, y_test_multiclass, "multiclassencoding"
+    X_train_multiclass, X_test_multiclass, y_train_multiclass, y_test_multiclass = (
+        feature_engineering(
+            X_train_multiclass,
+            X_test_multiclass,
+            y_train_multiclass,
+            y_test_multiclass,
+            "multiclassencoding",
+        )
     )
 
     # SMOTE step
@@ -61,11 +67,8 @@ def ml_pipeline():
     # Scaling and PCA now live inside each model's sklearn Pipeline so the
     # saved MLflow artifact is self-contained and usable for inference on raw features.
 
-
     # Model building step (logistic regression)
-    lr_binary_model = model_building(
-        X_train_binary, y_train_binary, "logisticregression"
-    )
+    lr_binary_model = model_building(X_train_binary, y_train_binary, "logisticregression")
 
     # Log logistic regression model to MLflow
     lr_bi_run_id = mlflow_tracker(
@@ -95,9 +98,7 @@ def ml_pipeline():
     print(f"Model saved to: {rf_bi_model_path}")
 
     # Model building step (rf multiclass classification)
-    rf_multiclass_model = model_building(
-        X_train_multiclass, y_train_multiclass, "rf_multiclass"
-    )
+    rf_multiclass_model = model_building(X_train_multiclass, y_train_multiclass, "rf_multiclass")
 
     # Log  rf model to mlflow
     rf_multi_run_id = mlflow_tracker(
@@ -109,7 +110,7 @@ def ml_pipeline():
         experiment_name=MLFLOW_EXPERIMENT_NAME,
     )
     rf_multi_model_path = download_model_from_mlflow(rf_multi_run_id, "rf_multiclass")
-    print(f"Model saved to: {rf_bi_model_path}")
+    print(f"Model saved to: {rf_multi_model_path}")
 
     # Model building step (xgboost binary classfication)
     xgb_binary_model = model_building(X_train_binary, y_train_binary, "xgb_binary")
@@ -127,9 +128,7 @@ def ml_pipeline():
     print(f"Model saved to: {xgb_bi_model_path}")
 
     # Model building step (xgboost multiclass classification)
-    xgb_multiclass_model = model_building(
-        X_train_multiclass, y_train_multiclass, "xgb_multiclass"
-    )
+    xgb_multiclass_model = model_building(X_train_multiclass, y_train_multiclass, "xgb_multiclass")
 
     # Log xgb multiclass model to mlflow
     xgb_multi_run_id = mlflow_tracker(
@@ -140,9 +139,7 @@ def ml_pipeline():
         tracking_uri=MLFLOW_TRACKING_URI,
         experiment_name=MLFLOW_EXPERIMENT_NAME,
     )
-    xgb_multi_model_path = download_model_from_mlflow(
-        xgb_multi_run_id, "xgb_multiclass"
-    )
+    xgb_multi_model_path = download_model_from_mlflow(xgb_multi_run_id, "xgb_multiclass")
     print(f"Model saved to: {xgb_multi_model_path}")
 
     # Model building step (lighgbm bianry classification)
@@ -159,7 +156,7 @@ def ml_pipeline():
     )
     lgbm_bi_model_path = download_model_from_mlflow(lgbm_bi_run_id, "lgbm_binary")
     print(f"Model saved to: {lgbm_bi_model_path}")
-    
+
     # Model building step (xgboost multiclass classification)
     lgbm_multiclass_model = model_building(
         X_train_multiclass, y_train_multiclass, "lgbm_multiclass"
@@ -173,14 +170,12 @@ def ml_pipeline():
         tracking_uri=MLFLOW_TRACKING_URI,
         experiment_name=MLFLOW_EXPERIMENT_NAME,
     )
-    lgbm_multi_model_path = download_model_from_mlflow(
-        lgbm_multi_run_id, "lgbm_multiclass"
-    )
+    lgbm_multi_model_path = download_model_from_mlflow(lgbm_multi_run_id, "lgbm_multiclass")
     print(f"Model saved to: {lgbm_multi_model_path}")
-    
+
     # oc_svm model building step
     oc_svm = model_building(X_train_multiclass, y_train_multiclass, "oc_svm")
-    
+
     # Log oc_svm model to mlflow
     oc_svm_run_id = mlflow_tracker(
         model=oc_svm,
@@ -190,10 +185,9 @@ def ml_pipeline():
         tracking_uri=MLFLOW_TRACKING_URI,
         experiment_name=MLFLOW_EXPERIMENT_NAME,
     )
-    oc_svm_model_path = download_model_from_mlflow(
-        oc_svm_run_id, "oc_svm"
-    )
+    oc_svm_model_path = download_model_from_mlflow(oc_svm_run_id, "oc_svm")
     print(f"Model saved to: {oc_svm_model_path}")
-    
+
+
 if __name__ == "__main__":
     pass

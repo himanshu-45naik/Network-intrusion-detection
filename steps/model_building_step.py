@@ -1,16 +1,17 @@
-from zenml import step
 import pandas as pd
+from sklearn.pipeline import Pipeline
+from zenml import step
 from zenml.integrations.sklearn.materializers.sklearn_materializer import SklearnMaterializer
+
+from models.lightgbm_model import LgbBuilder, LgbModel
 from models.logistic_regression import LogisticModelBuilder, LogisticRegressionModel
 from models.oc_svm import OCsvmModelBuilder, OneClassSvmModel
-from models.randomforest import RandomForestModelBuilder, RandomForestModel
-from models.lightgbm_model import LgbBuilder, LgbModel
+from models.randomforest import RandomForestModel, RandomForestModelBuilder
 from models.xgboost_model import Xgbbuilder, XgbModel
-from sklearn.pipeline import Pipeline
 
 
 @step(output_materializers={"output": SklearnMaterializer})
-def model_building(X_train: pd.DataFrame, y_train: pd.Series, model_name: str)-> Pipeline:
+def model_building(X_train: pd.DataFrame, y_train: pd.Series, model_name: str) -> Pipeline:
     """Builds and trains the model
 
     Args:
@@ -34,10 +35,11 @@ def model_building(X_train: pd.DataFrame, y_train: pd.Series, model_name: str)->
         model = LgbBuilder(LgbModel(binary_class=True))
     elif model_name == "lgbm_multiclass":
         model = LgbBuilder(LgbModel(binary_class=False))
-    
+
     best_model = model.execute_strategy(X_train, y_train)
 
     return best_model
+
 
 if __name__ == "__main__":
     pass
