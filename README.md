@@ -105,6 +105,7 @@ The pipeline includes SMOTE (Synthetic Minority Over-sampling Technique) to hand
 ```python
 # To apply SMOTE:
 from steps.oversampling_data_step import sampling_data
+
 x_resampled, y_resampled = sampling_data(x_train, y_train)
 ```
 

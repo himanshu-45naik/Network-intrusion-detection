@@ -1,6 +1,6 @@
-from zenml import step
 import pandas as pd
 from src.downcast_data import DownCaster
+from zenml import step
 
 
 @step

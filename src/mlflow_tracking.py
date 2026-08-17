@@ -1,24 +1,24 @@
+import logging
 import os
+from abc import ABC, abstractmethod
+from typing import Any, Union
+
+import matplotlib.pyplot as plt
 import mlflow
 import numpy as np
 import pandas as pd
-from abc import ABC, abstractmethod
-from typing import Any, Union
-from sklearn.pipeline import Pipeline
+import seaborn as sns
 from sklearn.metrics import (
     accuracy_score,
-    precision_score,
-    recall_score,
-    f1_score,
-    confusion_matrix,
-    roc_curve,
     auc,
     classification_report,
+    confusion_matrix,
+    f1_score,
+    precision_score,
+    recall_score,
+    roc_curve,
 )
-import matplotlib.pyplot as plt
-import seaborn as sns
-import logging
-
+from sklearn.pipeline import Pipeline
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -57,10 +57,10 @@ class ModelTracking(MLFlowTracking):
     def _safe_param_convert(self, param_value: Any) -> str:
         """
         Convert parameter values to a safe string representation
-        
+
         Args:
             param_value (Any): Input parameter value
-        
+
         Returns:
             str: Converted parameter value
         """
@@ -109,16 +109,19 @@ class ModelTracking(MLFlowTracking):
                                     # Create fully qualified parameter name
                                     full_param_name = f"{step_name}__{param_name}"
                                     # Convert parameter to safe string
-                                    pipeline_params[full_param_name] = self._safe_param_convert(param_value)
+                                    pipeline_params[full_param_name] = self._safe_param_convert(
+                                        param_value
+                                    )
                         except Exception as step_err:
                             logger.warning(f"Error processing step {step_name}: {step_err}")
                 else:
                     # Handle single model case
-                    logger.warning(f"Model {model_name} is not a Pipeline. Logging only model parameters.")
+                    logger.warning(
+                        f"Model {model_name} is not a Pipeline. Logging only model parameters."
+                    )
                     if hasattr(model, "get_params"):
                         pipeline_params = {
-                            k: self._safe_param_convert(v) 
-                            for k, v in model.get_params().items()
+                            k: self._safe_param_convert(v) for k, v in model.get_params().items()
                         }
 
                 # Safely log parameters
@@ -169,7 +172,8 @@ class ModelTracking(MLFlowTracking):
                         roc_auc = auc(fpr, tpr)
 
                         plt.plot(
-                            fpr, tpr,
+                            fpr,
+                            tpr,
                             color="darkorange",
                             lw=2,
                             label=f"ROC curve (area = {roc_auc:.2f})",
@@ -200,9 +204,10 @@ class ModelTracking(MLFlowTracking):
                 try:
                     mlflow.log_param("input_features", str(list(X_test.columns)))
                     mlflow.log_param(
-                        "pipeline_steps", 
-                        str([step_name for step_name, _ in model.steps]) 
-                        if isinstance(model, Pipeline) else "Single Model"
+                        "pipeline_steps",
+                        str([step_name for step_name, _ in model.steps])
+                        if isinstance(model, Pipeline)
+                        else "Single Model",
                     )
 
                     # Classification report
@@ -253,8 +258,8 @@ class ModelTracker:
     ):
         tracker = ModelTracking()
         return tracker.mlflow_log_model(
-            model, model_name, X_test, y_test, tracking_uri,
-            experiment_name)
+            model, model_name, X_test, y_test, tracking_uri, experiment_name
+        )
 
 
 if __name__ == "__main__":

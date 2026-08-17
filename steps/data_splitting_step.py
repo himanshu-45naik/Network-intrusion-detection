@@ -1,7 +1,9 @@
 from typing import Tuple
+
 import pandas as pd
-from src.data_splitting import DataSplitter, SimpleTrainTestSplitStrategy
 from zenml import step
+
+from src.data_splitting import DataSplitter, SimpleTrainTestSplitStrategy
 
 
 @step

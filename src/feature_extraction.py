@@ -1,17 +1,19 @@
 import logging
+from typing import Tuple
+
 import numpy as np
 import pandas as pd
-from typing import Tuple
 from sklearn.decomposition import IncrementalPCA
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+
 
 class PCAFeatureReduction:
     def __init__(self, n_components: float = 0.5, batch_size: int = 500):
         """Initializes the PCA transformer.
 
         Args:
-            n_components (float or int or str): Number of components to retain. 
+            n_components (float or int or str): Number of components to retain.
                 - If float (0-1), it represents the fraction of features.
                 - If int, it represents the exact number of components.
                 - If "mle", it uses Minka's MLE to determine the optimal number of components.
@@ -19,7 +21,7 @@ class PCAFeatureReduction:
         """
         self.n_components = n_components
         self.batch_size = batch_size
-        self.ipca = None  
+        self.ipca = None
 
     def fit(self, X_train: pd.DataFrame):
         """Fits PCA on the training data.
@@ -46,7 +48,7 @@ class PCAFeatureReduction:
         self.ipca = IncrementalPCA(n_components=n_components, batch_size=self.batch_size)
 
         # Fit PCA in batches
-        batch_splits = max(1, min(len(X_train) // self.batch_size, 50))  
+        batch_splits = max(1, min(len(X_train) // self.batch_size, 50))
         for batch in np.array_split(X_train, batch_splits):
             self.ipca.partial_fit(batch)
 
@@ -66,9 +68,13 @@ class PCAFeatureReduction:
             raise RuntimeError("PCA model has not been fitted. Call 'fit' before 'transform'.")
 
         transformed_data = self.ipca.transform(X)
-        return pd.DataFrame(transformed_data, columns=[f"PC{i+1}" for i in range(self.ipca.n_components_)])
+        return pd.DataFrame(
+            transformed_data, columns=[f"PC{i + 1}" for i in range(self.ipca.n_components_)]
+        )
 
-    def fit_transform(self, X_train: pd.DataFrame, X_test: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    def fit_transform(
+        self, X_train: pd.DataFrame, X_test: pd.DataFrame
+    ) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """Fits PCA on X_train and transforms both X_train and X_test.
 
         Args:
@@ -82,6 +88,8 @@ class PCAFeatureReduction:
         X_train_pca = self.transform(X_train)
         X_test_pca = self.transform(X_test)
 
-        logging.info(f"PCA transformation applied. Final shape: {X_train_pca.shape}, {X_test_pca.shape}")
+        logging.info(
+            f"PCA transformation applied. Final shape: {X_train_pca.shape}, {X_test_pca.shape}"
+        )
 
         return X_train_pca, X_test_pca

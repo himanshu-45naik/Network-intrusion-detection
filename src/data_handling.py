@@ -1,8 +1,9 @@
-import pandas as pd
-import numpy as np
+import logging
 from abc import ABC, abstractmethod
 from typing import List
-import logging
+
+import numpy as np
+import pandas as pd
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s-%(levelname)s-%(message)s")
 
@@ -59,8 +60,9 @@ class ReplaceFeatureNames(HandlingStrategy):
         df.drop("Label", axis=1, inplace=True)
         return df
 
+
 class DropDuplicateValues(HandlingStrategy):
-    def transform(self, df: pd.DataFrame, features= None) -> pd.DataFrame:
+    def transform(self, df: pd.DataFrame, features=None) -> pd.DataFrame:
         """
         Drops the duplicate values.
 
@@ -74,6 +76,7 @@ class DropDuplicateValues(HandlingStrategy):
         df_cleaned.drop_duplicates(inplace=True)
         logging.info("Successfully dropped duplicate values.")
         return df_cleaned
+
 
 class ReplaceInfinteValues(HandlingStrategy):
     def transform(self, df: pd.DataFrame, features: List) -> pd.DataFrame:
@@ -89,12 +92,11 @@ class ReplaceInfinteValues(HandlingStrategy):
         df_cleaned = df.copy()
         df_cleaned[features] = df_cleaned[features].replace([np.inf, -np.inf], np.nan)
         logging.info(f"Infinite values replaced with Nan for features {features}.")
-        logging.info(f"Shape of dataframe after replacing infinte values ")
+        logging.info("Shape of dataframe after replacing infinte values ")
         return df_cleaned
 
 
 class FillingMissingValues(HandlingStrategy):
-
     def __init__(self, method="mean", fill_value=None):
         """Initializes the specific method with which missing values are filled
 
@@ -124,14 +126,10 @@ class FillingMissingValues(HandlingStrategy):
             elif self.method == "median":
                 df_cleaned[feature] = df[feature].fillna(df[feature].median())
             elif self.method == "mode":
-                df_cleaned[feature] = df[feature].fillna(
-                    df[feature].mode()[0]
-                )  
+                df_cleaned[feature] = df[feature].fillna(df[feature].mode()[0])
             elif self.method == "constant":
                 if self.fill_value is None:
-                    raise ValueError(
-                        "fill_value must be provided for 'constant' method"
-                    )
+                    raise ValueError("fill_value must be provided for 'constant' method")
                 df_cleaned[feature] = df[feature].fillna(self.fill_value)
             else:
                 logging.warning(f"Unknown method '{self.method}'")
@@ -142,9 +140,7 @@ class FillingMissingValues(HandlingStrategy):
 
 
 class DropOneValueFeature(HandlingStrategy):
-    
-
-    def transform(self, df: pd.DataFrame,features:list) -> pd.DataFrame:
+    def transform(self, df: pd.DataFrame, features: list) -> pd.DataFrame:
         """Drops feature which has only one unique value.
         Args:
             df (pd.DataFrame): The input data.
@@ -163,9 +159,9 @@ class DropOneValueFeature(HandlingStrategy):
 
         return df
 
-class DownCasting(HandlingStrategy):
 
-    def transform(self, df: pd.DataFrame, features= None) -> pd.DataFrame:
+class DownCasting(HandlingStrategy):
+    def transform(self, df: pd.DataFrame, features=None) -> pd.DataFrame:
         """Converts the int64 and float64 to int32 and float32 respectively."""
 
         df_tranformed = df.copy()
@@ -182,7 +178,8 @@ class DownCasting(HandlingStrategy):
                 df_tranformed[col] = df_tranformed[col].astype(np.int32)
         logging.info("Sucessfully downcasted the data.")
         return df_tranformed
-    
+
+
 class Handler:
     def __init__(self, strategy: HandlingStrategy):
         """Initializes the strategy for handling the data."""

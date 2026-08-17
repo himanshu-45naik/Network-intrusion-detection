@@ -1,14 +1,14 @@
-from abc import ABC, abstractmethod
-import pandas as pd
 import logging
+from abc import ABC, abstractmethod
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
+import pandas as pd
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+
 
 class DropFeatureStrategy(ABC):
     @abstractmethod
-    def drop_features(self,df:pd.DataFrame, features:list)->pd.DataFrame:
+    def drop_features(self, df: pd.DataFrame, features: list) -> pd.DataFrame:
         """Drops the features from the dataframe.
 
         Args:
@@ -19,9 +19,9 @@ class DropFeatureStrategy(ABC):
             pd.DataFrame: The transformed dataframe.
         """
 
-class DropOneValueFeature(DropFeatureStrategy):
 
-    def drop_features(self, df: pd.DataFrame,features:list) -> pd.DataFrame:
+class DropOneValueFeature(DropFeatureStrategy):
+    def drop_features(self, df: pd.DataFrame, features: list) -> pd.DataFrame:
         """Drops feature which has only one unique value
 
         Args:

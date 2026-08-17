@@ -1,14 +1,13 @@
 import os
 import zipfile
 from abc import ABC, abstractmethod
-import pandas as pd
 
+import pandas as pd
 
 # Define an abstract class
 
 
 class Ingest_Data(ABC):
-
     @abstractmethod
     def ingest_df(self, data_path: str) -> pd.DataFrame:
         """
@@ -18,10 +17,9 @@ class Ingest_Data(ABC):
 
 
 class ZipDataIngester(Ingest_Data):
-
     def ingest_df(self, data_path: str) -> pd.DataFrame:
         """Converts .zip file and returns data in pd.DataFrame format"""
-    
+
         # Ensure data is in zip format
         if not data_path.endswith(".zip"):
             raise ValueError("The provided file is not a .zip file.")
@@ -63,9 +61,7 @@ class DataIngestorFactory:
         if file_extension == ".zip":
             return ZipDataIngester()
         else:
-            raise ValueError(
-                f"No ingestor is present for this {file_extension} file extension."
-            )
+            raise ValueError(f"No ingestor is present for this {file_extension} file extension.")
 
 
 if __name__ == "__main__":

@@ -1,15 +1,17 @@
-from zenml import step
-import pandas as pd
-import numpy as np
-from src.data_handling import (
-    Handler,
-    ReplaceInfinteValues,
-    FillingMissingValues,
-    ReplaceFeatureNames,
-    DropDuplicateValues,
-    DownCasting
-)
 import logging
+
+import numpy as np
+import pandas as pd
+from zenml import step
+
+from src.data_handling import (
+    DownCasting,
+    DropDuplicateValues,
+    FillingMissingValues,
+    Handler,
+    ReplaceFeatureNames,
+    ReplaceInfinteValues,
+)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s-%(levelname)s-%(message)s")
 
@@ -29,21 +31,23 @@ def handling_data(
     Returns:
         pd.DataFrame: The transformed DataFrame.
     """
-    
+
     # Replacing feature names.
     handler1 = Handler(ReplaceFeatureNames())
     feature_names = df.columns
     updated_raw_df = handler1.execute_strategy(df, feature_names)
 
     # Dropping Duplicate values.
-    handler2 = Handler(DropDuplicateValues())  
+    handler2 = Handler(DropDuplicateValues())
     transformed_df = handler2.execute_strategy(updated_raw_df, features=None)
 
     # Replacing infinity values with NaN
     handler3 = Handler(ReplaceInfinteValues())
 
     numeric_df = transformed_df.select_dtypes(include=["number"])
-    inf_features = [col for col in numeric_df.columns if transformed_df[col].isin([np.inf, -np.inf]).any()]
+    inf_features = [
+        col for col in numeric_df.columns if transformed_df[col].isin([np.inf, -np.inf]).any()
+    ]
 
     if inf_features:
         transformed_df = handler3.execute_strategy(transformed_df, inf_features)
@@ -66,6 +70,6 @@ def handling_data(
 
     # Downcasting
     handler5 = Handler(DownCasting())
-    downcasted_df = handler5.execute_strategy(transformed_df,features=None)
+    downcasted_df = handler5.execute_strategy(transformed_df, features=None)
 
-    return downcasted_df  
+    return downcasted_df
