@@ -5,7 +5,6 @@ import os
 from steps.data_ingestion_step import data_ingestion
 from steps.data_handling_step import handling_data
 from steps.feature_engineering_step import feature_engineering
-from steps.feature_extraction_step import feature_extraction
 from steps.data_splitting_step import data_splitting
 from steps.drop_features_step import drop_feature
 from steps.oversampling_data_step import over_sampling_data
@@ -59,17 +58,10 @@ def ml_pipeline():
         X_train_multiclass, y_train_multiclass
     )
 
-    # Scaling step
-    X_train_binary, X_test_binary, y_train_binary, y_test_binary = feature_engineering(X_train_binary, X_test_binary, y_train_binary, y_test_binary, "standard")
-    X_train_multiclass, X_test_multiclass, y_train_multiclass, y_test_multiclass = feature_engineering(
-        X_train_multiclass, X_test_multiclass, y_train_multiclass, y_test_multiclass, "standard"
-    )
+    # Scaling and PCA now live inside each model's sklearn Pipeline so the
+    # saved MLflow artifact is self-contained and usable for inference on raw features.
 
-    # PCA step
-    X_train_binary , X_test_binary = feature_extraction(X_train_binary, X_test_binary)
-    X_train_multiclass, X_test_multiclass = feature_extraction(X_train_multiclass, X_test_multiclass)
 
-    
     # Model building step (logistic regression)
     lr_binary_model = model_building(
         X_train_binary, y_train_binary, "logisticregression"

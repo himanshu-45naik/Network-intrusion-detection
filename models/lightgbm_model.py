@@ -6,7 +6,7 @@ warnings.filterwarnings("ignore")
 from models.base_model import ModelBuildingStrategy
 import lightgbm as lgb
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
 from sklearn.model_selection import GridSearchCV, StratifiedKFold
 
 logging.basicConfig(
@@ -53,7 +53,7 @@ class LgbModel(ModelBuildingStrategy):
 
         pipeline = Pipeline(
             [
-                ("scaler", StandardScaler()),
+                ("imputer", SimpleImputer(strategy="median")),
                 ("lgb", lgb_model),
             ]
         )

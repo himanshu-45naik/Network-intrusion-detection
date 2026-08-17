@@ -3,7 +3,7 @@ import logging
 from models.base_model import ModelBuildingStrategy
 import xgboost as xgb
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
 from sklearn.model_selection import GridSearchCV, StratifiedKFold
 
 logging.basicConfig(
@@ -42,7 +42,7 @@ class XgbModel(ModelBuildingStrategy):
 
         pipeline = Pipeline(
             [
-                ("scaler", StandardScaler()),
+                ("imputer", SimpleImputer(strategy="median")),
                 (
                     "xgb",
                     xgb.XGBClassifier(
