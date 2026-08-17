@@ -1,0 +1,9 @@
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["analysis", ".myenv"]
+
+[tool.ruff.lint]
+# High-signal rules only: real bugs (pyflakes, syntax), sorted imports.
+# Style/modernization rules (UP, SIM, LOG, BLE...) can be enabled later.
+select = ["E4", "E7", "E9", "F", "I"]
