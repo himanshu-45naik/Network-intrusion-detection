@@ -4,6 +4,8 @@ from models.base_model import ModelBuildingStrategy
 from sklearn.svm import OneClassSVM
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
+from sklearn.decomposition import PCA
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s-%(levelname)s-%(message)s")
 
@@ -28,7 +30,9 @@ class OneClassSvmModel(ModelBuildingStrategy):
 
         pipeline = Pipeline(
             [
+                ("imputer", SimpleImputer(strategy="median")),
                 ("scaler", StandardScaler()),
+                ("pca", PCA(n_components=0.95, svd_solver="full")),
                 ("ocsvm", OneClassSVM(kernel="rbf", gamma="scale", nu=0.5, verbose=True))
             ]
         )

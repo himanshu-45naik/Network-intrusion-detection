@@ -3,6 +3,8 @@ import logging
 from models.base_model import ModelBuildingStrategy
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
+from sklearn.decomposition import PCA
 from sklearn.model_selection import GridSearchCV
 from sklearn.pipeline import Pipeline
 
@@ -25,8 +27,15 @@ class LogisticRegressionModel(ModelBuildingStrategy):
 
         lr = LogisticRegression(random_state=42)
 
+        # Full preprocessing lives in the pipeline so the saved model
+        # can score raw feature rows at inference time.
         pipeline = Pipeline(
-            [("scaler", StandardScaler()), ("LR", LogisticRegression(max_iter=5000))]
+            [
+                ("imputer", SimpleImputer(strategy="median")),
+                ("scaler", StandardScaler()),
+                ("pca", PCA(n_components=0.95, svd_solver="full")),
+                ("LR", LogisticRegression(max_iter=5000)),
+            ]
         )
 
         grid_search = GridSearchCV(

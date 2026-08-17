@@ -3,7 +3,7 @@ import logging
 from models.base_model import ModelBuildingStrategy
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
 from sklearn.model_selection import GridSearchCV
 
 logging.basicConfig(
@@ -17,9 +17,10 @@ class RandomForestModel(ModelBuildingStrategy):
 
         logging.info("Initializing Random Forest model with predefined best parameters.")
 
+        # Trees are scale-invariant: no scaler/PCA, just imputation for raw inputs.
         pipeline = Pipeline(
             [
-                ("scaler", StandardScaler()),
+                ("imputer", SimpleImputer(strategy="median")),
                 ("rf", RandomForestClassifier(
                     n_estimators=97, 
                     max_samples=0.9034128710297624, 
