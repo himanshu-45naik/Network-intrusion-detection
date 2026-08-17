@@ -8,3 +8,4 @@ models/
 *__pycache__*
 .myenv/
 data/
+.DS_Store
