@@ -8,6 +8,7 @@ from steps.data_ingestion_step import data_ingestion
 from steps.data_splitting_step import data_splitting
 from steps.drop_features_step import drop_feature
 from steps.feature_engineering_step import feature_engineering
+from steps.imputation_step import impute_missing_values
 from steps.mlflow_tracking_step import mlflow_tracker
 from steps.model_building_step import model_building
 from steps.model_downloader import download_model_from_mlflow
@@ -29,7 +30,7 @@ def ml_pipeline():
     raw_df = data_ingestion(DATA_PATH)
 
     # Data Handling step.
-    processed_df = handling_data(raw_df, "mean", fill_value=None)
+    processed_df = handling_data(raw_df)
     # Sample Dataset
     sampled_df = sampling_data(processed_df, sample_size=0.05, random_state=42)
 
@@ -42,6 +43,13 @@ def ml_pipeline():
     )
     X_train_multiclass, X_test_multiclass, y_train_multiclass, y_test_multiclass = data_splitting(
         modified_df, "Attack Type"
+    )
+
+    # Imputation step: fitted on the training split only, so no test statistic
+    # leaks into training. Required before SMOTE, which rejects NaN.
+    X_train_binary, X_test_binary = impute_missing_values(X_train_binary, X_test_binary)
+    X_train_multiclass, X_test_multiclass = impute_missing_values(
+        X_train_multiclass, X_test_multiclass
     )
 
     # Label encoding for binary classification step
