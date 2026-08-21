@@ -97,6 +97,13 @@ class ReplaceInfinteValues(HandlingStrategy):
 
 
 class FillingMissingValues(HandlingStrategy):
+    """Fills missing values using statistics computed from the dataframe passed in.
+
+    WARNING: this computes fill values inline, with no fit/transform separation, so
+    calling it on a full dataset before a train/test split leaks test statistics into
+    training. Use src.imputation.SplitAwareImputation for train/test data instead.
+    """
+
     def __init__(self, method="mean", fill_value=None):
         """Initializes the specific method with which missing values are filled
 
