@@ -4,6 +4,7 @@ env/
 *.zip
 extracted_data/
 mlruns/
+saved_models/
 models/
 *__pycache__*
 .myenv/
