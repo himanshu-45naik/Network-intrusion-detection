@@ -23,8 +23,11 @@ USER appuser
 
 EXPOSE 8000
 
+# Reads $PORT rather than hardcoding 8000: hosts like Render inject their own
+# port, and a healthcheck pinned to the wrong one reports a healthy service as
+# unhealthy.
 HEALTHCHECK --interval=30s --timeout=3s --start-period=20s --retries=3 \
-    CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/ready').status==200 else 1)"
+    CMD python -c "import os,sys,urllib.request; sys.exit(0 if urllib.request.urlopen(f\"http://127.0.0.1:{os.environ.get('PORT','8000')}/ready\").status==200 else 1)"
 
 # Single worker by default: the Random Forest holds ~100 MB resident and each
 # worker loads its own copy. Scale with replicas, not workers.
