@@ -1,0 +1,10 @@
+# Scrape config for the local compose stack. The service exposes counters,
+# a latency histogram and the drift gauge at /metrics.
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: nids-api
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["api:8000"]

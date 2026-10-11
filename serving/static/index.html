@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Intrusion Detection</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --border: #30363d; --text: #e6edf3;
+    --muted: #8b949e; --accent: #58a6ff; --ok: #3fb950; --bad: #f85149;
+    --warn: #d29922; --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 32px 16px 64px; }
+  header { border-bottom: 1px solid var(--border); padding-bottom: 20px; margin-bottom: 24px; }
+  h1 { font-size: 24px; margin: 0 0 6px; }
+  .sub { color: var(--muted); font-size: 14px; }
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .badge {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
+    padding: 4px 10px; font-size: 12px; font-family: var(--mono); color: var(--muted);
+  }
+  .badge b { color: var(--text); font-weight: 600; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 820px) { .grid { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 18px;
+  }
+  .card h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--muted); margin: 0 0 14px; font-weight: 600; }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 6px; }
+  select, input[type=range], textarea {
+    width: 100%; background: var(--bg); color: var(--text);
+    border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font-size: 14px;
+  }
+  textarea { font-family: var(--mono); font-size: 12px; min-height: 150px; resize: vertical; }
+  .row { display: flex; gap: 10px; align-items: center; }
+  button {
+    background: var(--accent); color: #0d1117; border: 0; border-radius: 6px;
+    padding: 9px 16px; font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  button.ghost { background: transparent; color: var(--accent); border: 1px solid var(--border); }
+  button:disabled { opacity: .5; cursor: default; }
+  .verdict { display: flex; align-items: baseline; gap: 12px; margin-bottom: 4px; }
+  .verdict .v { font-size: 26px; font-weight: 700; }
+  .v.attack { color: var(--bad); } .v.benign { color: var(--ok); }
+  .meta { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .bar { height: 8px; background: var(--bg); border-radius: 99px; overflow: hidden; margin: 10px 0 16px; }
+  .bar > div { height: 100%; background: var(--bad); transition: width .25s; }
+  .probs { display: grid; gap: 6px; }
+  .prob { display: grid; grid-template-columns: 120px 1fr 56px; gap: 10px; align-items: center;
+    font-size: 13px; }
+  .prob .track { height: 6px; background: var(--bg); border-radius: 99px; overflow: hidden; }
+  .prob .track > div { height: 100%; background: var(--accent); }
+  .prob .val { font-family: var(--mono); font-size: 12px; color: var(--muted); text-align: right; }
+  pre { background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+    padding: 12px; overflow: auto; font-size: 12px; margin: 0; max-height: 280px; }
+  .note { font-size: 12px; color: var(--muted); margin-top: 10px; }
+  .err { color: var(--bad); font-size: 13px; margin-top: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; }
+  td.mono { font-family: var(--mono); font-size: 12px; }
+  .pill { font-size: 11px; padding: 2px 7px; border-radius: 99px; font-family: var(--mono); }
+  .pill.attack { background: rgba(248,81,73,.15); color: var(--bad); }
+  .pill.benign { background: rgba(63,185,80,.15); color: var(--ok); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Network Intrusion Detection</h1>
+    <div class="sub">Random Forest on CICIDS2017 flow features &middot; served over FastAPI</div>
+    <div class="badges" id="badges"></div>
+  </header>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Score a flow</h2>
+      <label for="sample">Held-out sample</label>
+      <select id="sample"></select>
+
+      <label for="thresh">Attack threshold &mdash; <span id="threshVal">0.50</span></label>
+      <input type="range" id="thresh" min="0.05" max="0.95" step="0.05" value="0.5" />
+
+      <label for="payload">Feature payload</label>
+      <textarea id="payload" spellcheck="false"></textarea>
+
+      <div class="row" style="margin-top:12px">
+        <button id="go">Predict</button>
+        <button id="batch" class="ghost">Score all samples</button>
+      </div>
+      <div class="err" id="err"></div>
+      <div class="note">
+        Raising the threshold trades recall for precision. The model is unchanged.
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Result</h2>
+      <div id="result"><div class="meta">No prediction yet.</div></div>
+    </div>
+  </div>
+
+  <div class="grid" style="margin-top:16px">
+    <div class="card">
+      <h2>Batch run</h2>
+      <div id="batchOut"><div class="meta">Run &ldquo;Score all samples&rdquo;.</div></div>
+    </div>
+    <div class="card">
+      <h2>Live service metrics</h2>
+      <div id="stats"><div class="meta">Loading&hellip;</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let samples = [];
+
+const fmt = (n, d = 4) => Number(n).toFixed(d);
+
+async function api(path, body) {
+  const opts = body
+    ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }
+    : {};
+  const res = await fetch(path, opts);
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.detail || `${res.status} ${res.statusText}`);
+  return json;
+}
+
+async function loadModel() {
+  const card = await api("/model");
+  $("badges").innerHTML = [
+    ["model", card.version],
+    ["features", card.n_features],
+    ["classes", card.classes.length],
+    ["attack recall", fmt(card.metrics.binary.recall)],
+    ["attack precision", fmt(card.metrics.binary.precision)],
+    ["false positive rate", fmt(card.metrics.binary.false_positive_rate, 5)],
+    ["macro F1", fmt(card.metrics.multiclass.f1_macro)],
+    ["train rows", card.params.train_rows.toLocaleString()],
+  ].map(([k, v]) => `<span class="badge">${k} <b>${v}</b></span>`).join("");
+}
+
+async function loadSamples() {
+  const data = await api("/samples");
+  samples = data.samples;
+  $("sample").innerHTML = samples
+    .map((s, i) => `<option value="${i}">${s.true_label}</option>`)
+    .join("");
+  showSample(0);
+}
+
+function showSample(i) {
+  if (!samples[i]) return;
+  $("payload").value = JSON.stringify(samples[i].features, null, 1);
+}
+
+function renderResult(pred, trueLabel) {
+  const pct = (pred.attack_probability * 100).toFixed(1);
+  const probs = Object.entries(pred.class_probabilities)
+    .sort((a, b) => b[1] - a[1])
+    .map(([cls, p]) => `
+      <div class="prob">
+        <span>${cls}</span>
+        <span class="track"><div style="width:${(p * 100).toFixed(1)}%"></div></span>
+        <span class="val">${fmt(p, 3)}</span>
+      </div>`).join("");
+
+  const warn = pred.unknown_features?.length
+    ? `<div class="note" style="color:var(--warn)">
+         ${pred.unknown_features.length} payload key(s) not used by the model.</div>` : "";
+  const missing = pred.missing_features?.length
+    ? `<div class="note" style="color:var(--warn)">
+         ${pred.missing_features.length} expected feature(s) missing, imputed with the training median.</div>` : "";
+
+  $("result").innerHTML = `
+    <div class="verdict">
+      <span class="v ${pred.verdict}">${pred.verdict.toUpperCase()}</span>
+      <span class="meta">${pred.attack_type}</span>
+    </div>
+    <div class="meta">P(attack) = ${fmt(pred.attack_probability)} &middot;
+      threshold ${fmt(pred.threshold, 2)} &middot; ${pred.latency_ms} ms
+      ${trueLabel ? `&middot; ground truth <b>${trueLabel}</b>` : ""}</div>
+    <div class="bar"><div style="width:${pct}%"></div></div>
+    <div class="probs">${probs}</div>
+    ${warn}${missing}`;
+}
+
+async function predict() {
+  $("err").textContent = "";
+  $("go").disabled = true;
+  try {
+    const features = JSON.parse($("payload").value);
+    const pred = await api("/predict", {
+      features,
+      threshold: parseFloat($("thresh").value),
+    });
+    renderResult(pred, samples[$("sample").value]?.true_label);
+    refreshStats();
+  } catch (e) {
+    $("err").textContent = e.message;
+  } finally {
+    $("go").disabled = false;
+  }
+}
+
+async function runBatch() {
+  $("err").textContent = "";
+  $("batch").disabled = true;
+  try {
+    const res = await api("/predict/batch", {
+      flows: samples.map((s) => s.features),
+      threshold: parseFloat($("thresh").value),
+    });
+    const rows = res.predictions.map((p, i) => {
+      const truth = samples[i].true_label;
+      const hit = p.attack_type === truth ? "✓" : "✗";
+      return `<tr>
+        <td class="mono">${truth}</td>
+        <td><span class="pill ${p.verdict}">${p.verdict}</span></td>
+        <td class="mono">${p.attack_type}</td>
+        <td class="mono">${fmt(p.attack_probability, 3)}</td>
+        <td class="mono">${hit}</td>
+      </tr>`;
+    }).join("");
+    $("batchOut").innerHTML = `
+      <div class="meta">${res.count} flows &middot; ${res.attacks_detected} flagged &middot;
+        ${res.latency_ms} ms total</div>
+      <table style="margin-top:10px">
+        <tr><th>Ground truth</th><th>Verdict</th><th>Predicted class</th><th>P(attack)</th><th></th></tr>
+        ${rows}
+      </table>`;
+    refreshStats();
+  } catch (e) {
+    $("err").textContent = e.message;
+  } finally {
+    $("batch").disabled = false;
+  }
+}
+
+async function refreshStats() {
+  try {
+    const [stats, drift] = await Promise.all([api("/stats"), api("/drift")]);
+    const counts = Object.entries(stats.predictions_total)
+      .filter(([k]) => !k.startsWith("verdict:"))
+      .sort((a, b) => b[1] - a[1])
+      .map(([k, v]) => `<tr><td class="mono">${k}</td><td class="mono">${v}</td></tr>`)
+      .join("");
+    const driftLine = drift.status === "ok"
+      ? `max PSI ${fmt(drift.max_psi, 3)} ${drift.alert ? "&middot; <b style='color:var(--bad)'>drift alert</b>" : ""}`
+      : `warming up &middot; ${drift.rows_observed}/${drift.rows_required} rows`;
+    $("stats").innerHTML = `
+      <div class="meta">
+        model ${stats.model_version} &middot; uptime ${stats.uptime_seconds}s<br />
+        ${stats.requests_total} requests &middot; ${stats.flows_scored_total} flows scored<br />
+        latency p50 ${stats.latency_ms.p50} ms &middot; p95 ${stats.latency_ms.p95} ms<br />
+        drift: ${driftLine}
+      </div>
+      ${counts ? `<table style="margin-top:12px">
+        <tr><th>Predicted class</th><th>Count</th></tr>${counts}</table>` : ""}
+      <div class="note">Scraped by Prometheus at <code>/metrics</code>.</div>`;
+  } catch (e) {
+    $("stats").innerHTML = `<div class="err">${e.message}</div>`;
+  }
+}
+
+$("sample").addEventListener("change", (e) => showSample(e.target.value));
+$("thresh").addEventListener("input", (e) => ($("threshVal").textContent = Number(e.target.value).toFixed(2)));
+$("go").addEventListener("click", predict);
+$("batch").addEventListener("click", runBatch);
+
+loadModel().catch((e) => ($("badges").innerHTML = `<span class="badge" style="color:var(--bad)">${e.message}</span>`));
+loadSamples().catch((e) => ($("err").textContent = e.message));
+refreshStats();
+setInterval(refreshStats, 10000);
+</script>
+</body>
+</html>
