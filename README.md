@@ -13,6 +13,14 @@ It has two sides:
 
 ## Deployed service
 
+**Live: https://nids-api-bibt.onrender.com** — [demo UI](https://nids-api-bibt.onrender.com/) ·
+[OpenAPI](https://nids-api-bibt.onrender.com/docs) ·
+[model card](https://nids-api-bibt.onrender.com/model) ·
+[metrics](https://nids-api-bibt.onrender.com/metrics)
+
+Free instance, so it sleeps after 15 minutes idle and the first request after that
+takes ~1 minute while the container boots.
+
 One multiclass Random Forest trained on CICIDS2017 is promoted to a self-contained
 4.2 MB bundle and served over FastAPI. It answers both "is this flow an attack"
 and "which attack family" from a single model.

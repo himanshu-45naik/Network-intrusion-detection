@@ -193,6 +193,33 @@ that produced the model.
 
 ## 4. Measured behaviour
 
+### In production
+
+Live at **https://nids-api-bibt.onrender.com** — Render free plan, Docker runtime,
+Singapore region. Measured with `scripts/smoke_test.py` from a client in India:
+
+| | |
+|---|---|
+| Single-flow latency | p50 **191.6 ms**, p95 338.5 ms (wall clock) |
+| — of which server side | **74.4 ms** (`X-Process-Time-Ms` header) |
+| — of which network + TLS | **123.6 ms**, 62% of the total |
+| Batch throughput | **523 flows/s** (400-flow batches over HTTPS) |
+| Resident memory | **159 MB** of the 512 MB free-plan limit |
+| Cold start after idle | ~1 min (free plan sleeps after 15 min) |
+| Label agreement on held-out rows | 7/8, identical to local |
+
+Two things that decomposition settles. Most of the user-visible latency is
+**distance, not compute** — the client is in India and the instance in Singapore,
+so 124 ms is round-trip and TLS. And the remaining 74 ms server side against
+16.6 ms on a laptop is the free plan's shared CPU, roughly 4.5× slower; that is a
+plan choice, not a code problem.
+
+The predictions are byte-identical to the local run, which is the point of baking
+the model into the image: there is no environment in which the deployed model can
+quietly differ from the tested one.
+
+### On a laptop
+
 From `scripts/smoke_test.py` against the container on a laptop, single uvicorn
 worker:
 
@@ -271,7 +298,17 @@ docker compose -f deploy/docker-compose.yml up --build
 # Prometheus http://localhost:9090
 ```
 
-### Hugging Face Spaces (free, no card)
+### Render (the live deployment)
+
+`render.yaml` is a blueprint: *New → Blueprint* in the Render dashboard, point it
+at the repo and branch, and it builds the Dockerfile, health-checks `/ready` and
+redeploys on push. Free plan, so the instance sleeps after 15 minutes idle.
+
+The Dockerfile's `HEALTHCHECK` reads `$PORT` rather than hardcoding 8000, because
+Render injects its own port — pinning it would report a working service as
+unhealthy.
+
+### Hugging Face Spaces
 
 A Space builds from its own git repo and needs YAML frontmatter in `README.md`,
 so the deploy script assembles a minimal Space repo in a temp directory — only
@@ -286,6 +323,12 @@ export HF_TOKEN=hf_xxx           # write token from huggingface.co/settings/toke
 ./deploy/push_to_space.sh <hf-username> nids-api
 # → https://<hf-username>-nids-api.hf.space
 ```
+
+**Not used for this deployment.** Creating a Docker Space returned HTTP 402 on the
+account used here — HF gates Docker Spaces behind a payment method, and the free
+Static SDK cannot run Python. The script is kept because it works on an account
+where Docker Spaces are available, and the `402` branch prints the manual
+free-tier creation steps.
 
 The build takes a few minutes the first time, then the Space serves the demo UI
 at `/`, OpenAPI at `/docs` and the full API. Free CPU Spaces do not sleep on a
