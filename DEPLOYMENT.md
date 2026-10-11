@@ -23,7 +23,7 @@ second.
                        │                 ├─ ModelBundle       │
                        │                 │  • sklearn Pipeline │
                        │                 │    (median imputer  │
-                       │                 │     → RandomForest) │
+                       │                 │     → XGBoost)      │
                        │                 │  • 70 feature names │
                        │                 │  • 8 class labels   │
                        │                 │  • held-out metrics │
@@ -35,7 +35,7 @@ second.
                        │                    • rolling PSI      │
                        │                                       │
                        │  loaded once at startup from          │
-                       │  artifacts/nids_model.joblib (4.2 MB) │
+                       │  artifacts/nids_model.joblib (0.6 MB) │
                        └───────────────┬───────────────────────┘
                                        │ GET /metrics
                                        ▼
@@ -43,7 +43,7 @@ second.
 ```
 
 **One container, one process, no external dependency at request time.** No
-database, no cache, no model server, no network call. The model is a 4.2 MB
+database, no cache, no model server, no network call. The model is a 0.6 MB
 joblib bundle baked into the image and loaded once in the FastAPI lifespan
 handler, so a request is CPU work and nothing else. That is why the service can
 run on a free-tier box and still answer in single-digit milliseconds.
@@ -58,11 +58,16 @@ The bundle carries everything the service needs: the fitted pipeline, the
 expected feature names and order, the class labels, the held-out metrics, and
 the per-feature decile edges used for drift. Because metadata travels with the
 estimator, the runtime image needs neither MLflow nor ZenML — `requirements-serving.txt`
-is 7 packages against 15 for training, which is both a smaller image and a
+is 8 packages against 15 for training, which is both a smaller image and a
 smaller attack surface on the internet-facing component.
 
+`xgboost-cpu` is pinned rather than `xgboost`: the default wheel depends on
+`nvidia-nccl` for GPU training, which adds ~364 MB of CUDA libraries that a
+CPU-only inference service never calls. The distinction is worth 782 MB of
+image size.
+
 The bundle is committed to the repository. For a project of this size that
-makes a deploy reproducible from a single commit sha, at the cost of 4.2 MB of
+makes a deploy reproducible from a single commit sha, at the cost of 0.6 MB of
 git history. At a size where that stops being true, the same bundle would be
 pushed to an artifact registry or the MLflow model registry and pulled by digest
 at image build time; nothing in `serving/` would change, only `MODEL_PATH`.
@@ -73,15 +78,16 @@ at image build time; nothing in `serving/` would change, only `MODEL_PATH`.
 
 | | |
 |---|---|
-| Algorithm | `RandomForestClassifier`, 120 trees, `max_features="sqrt"`, `class_weight="balanced_subsample"` |
-| Pipeline | `SimpleImputer(median)` → `RandomForestClassifier` |
+| Algorithm | `XGBClassifier`, `multi:softprob`, 200 rounds, `max_depth=5`, `learning_rate=0.1`, `subsample=0.8` |
+| Pipeline | `SimpleImputer(median)` → `XGBClassifier` |
+| Selected by | `analysis/model_comparison.ipynb` — five families on one split |
 | Dataset | CICIDS2017 (`MachineLearningCVE`), 2,830,743 raw flows |
 | After de-duplication | ~2.52 M flows |
 | Trained on | 10% stratified sample = 252,232 flows → 189,174 train / 63,058 test |
 | Features | 70 (8 constant columns dropped) |
 | Classes | BENIGN, Bot, Brute Force, DDoS, DoS, Port Scan, Web Attack, Other Attack |
-| Artifact | `artifacts/nids_model.joblib`, 4.2 MB |
-| Training time | ~32 s end to end on a laptop |
+| Artifact | `artifacts/nids_model.joblib`, **0.6 MB** |
+| Training time | ~33 s end to end on a laptop |
 
 ### Held-out performance
 
@@ -89,34 +95,48 @@ Attack vs benign — the number a SOC actually operates on:
 
 | Metric | Value |
 |---|---|
-| Recall (attacks caught) | **0.9919** |
-| Precision | **0.9966** |
-| F1 | 0.9943 |
-| ROC AUC | 0.9998 |
-| False positive rate | **0.00069** |
+| Recall (attacks caught) | **0.9977** |
+| Precision | **0.9960** |
+| F1 | 0.9968 |
+| ROC AUC | 0.99996 |
+| False positive rate | **0.00082** |
 
 Attack family (multiclass):
 
 | Metric | Value |
 |---|---|
-| Accuracy | 0.9980 |
-| Weighted F1 | 0.9980 |
-| Macro F1 | **0.8313** |
+| Accuracy | 0.99878 |
+| Weighted F1 | 0.99877 |
+| Macro F1 | **0.8416** |
 
-Per class F1: BENIGN 0.999, DDoS 0.999, DoS 0.996, Port Scan 0.989, Brute Force
-0.987, Web Attack 0.940, Bot 0.741, **Other Attack 0.000**.
+Per class F1: BENIGN 0.999, DDoS 0.999, DoS 0.998, Port Scan 0.993, Brute Force
+0.989, Web Attack 0.933, Bot 0.821, **Other Attack 0.000**.
 
-The gap between 0.998 weighted and 0.831 macro F1 is one class. `Other Attack`
+The gap between 0.999 weighted and 0.842 macro F1 is one class. `Other Attack`
 is Infiltration and Heartbleed merged — together about 47 flows in the full
 dataset, a handful of rows after a 10% sample, and the model never predicts it.
 Macro F1 is reported rather than hidden because it is the honest signal: this
 model detects the attack families that have volume and cannot detect the two
-that do not. Fixing that is a data problem (targeted oversampling or keeping
-those classes at 100% sample rate), not a model problem.
+that do not. Every candidate in the comparison scores 0.000 on that class, which
+places the ceiling in the data rather than the estimator. Fixing it means
+keeping those classes at full sample rate or oversampling them, not changing
+model.
 
 The false positive rate matters more than the headline accuracy. At 83% benign
-traffic and 0.00069 FPR, a million flows a day produces roughly 570 false
+traffic and 0.00082 FPR, a million flows a day produces roughly 680 false
 alerts — the difference between an alert stream someone reads and one they mute.
+
+### Why XGBoost
+
+Five families were trained on the same split (`analysis/model_comparison.ipynb`).
+Gradient boosting led, and class-weighted LightGBM matched XGBoost's recall
+exactly; XGBoost was taken for the lower false positive rate and because it
+reaches that recall without depending on `class_weight`, which removes a
+parameter whose omission silently costs 0.25 recall.
+
+`scripts/train_serving_model.py --model` accepts `xgb`, `rf-tuned` and `lgbm`,
+each configured as analysed, so the choice is reversible by one flag and a
+retrain.
 
 ### The decision threshold
 
@@ -193,23 +213,53 @@ that produced the model.
 
 ## 4. Measured behaviour
 
-From `scripts/smoke_test.py` against the container on a laptop, single uvicorn
-worker:
+### In production
+
+Live at **https://nids-api-bibt.onrender.com** — Render free plan, Docker runtime,
+Singapore region. Measured with `scripts/smoke_test.py` from a client in India:
 
 | | |
 |---|---|
-| Single-flow latency | p50 **16.6 ms**, p95 16.8 ms (client-side, includes HTTP) |
-| Batch throughput | **7,000–10,000 flows/s** (400-flow batches) |
-| Batch of 320 flows | 19.7 ms server-side |
-| Cold start | ~1 s to load the bundle and bind the port |
-| Resident memory | ~250 MB |
+| Single-flow latency | p50 **191.6 ms**, p95 338.5 ms (wall clock) |
+| — of which server side | **74.4 ms** (`X-Process-Time-Ms` header) |
+| — of which network + TLS | **123.6 ms**, 62% of the total |
+| Batch throughput | **523 flows/s** (400-flow batches over HTTPS) |
+| Resident memory | **159 MB** of the 512 MB free-plan limit |
+| Cold start after idle | ~1 min (free plan sleeps after 15 min) |
+| Label agreement on held-out rows | 7/8, identical to local |
 
-The 600× gap between single-flow and batched throughput is per-call overhead,
-not forest inference: a 70-feature DataFrame and one `predict_proba` call cost
-about the same whether the frame has 1 row or 400. Anything scoring a live flow
-feed should batch, which is why `/predict/batch` exists and why the Dockerfile
-runs one worker and scales by replica — each worker would hold its own copy of
-the forest.
+Two things that decomposition settles. Most of the user-visible latency is
+**distance, not compute** — the client is in India and the instance in Singapore,
+so 124 ms is round-trip and TLS. And the remaining 74 ms server side against
+16.6 ms on a laptop is the free plan's shared CPU, roughly 4.5× slower; that is a
+plan choice, not a code problem.
+
+The predictions are byte-identical to the local run, which is the point of baking
+the model into the image: there is no environment in which the deployed model can
+quietly differ from the tested one.
+
+### On a laptop
+
+From `scripts/smoke_test.py` against the container on a laptop, single uvicorn
+worker:
+
+| | | |
+|---|---|---|
+| | native uvicorn | in container |
+| Single-flow latency p50 | **2.9 ms** | 3.4 ms |
+| Batch throughput | **13,521 flows/s** | 8,634 flows/s |
+| Resident memory | — | **132 MB** |
+| Image size | — | 758 MB |
+| Cold start | ~1 s | ~5 s |
+
+The container is slower than native because Docker Desktop on macOS runs a
+Linux VM; on a Linux host the two converge.
+
+The ~40× gap between single-flow and batched throughput is per-call overhead,
+not inference: a 70-feature DataFrame and one `predict_proba` call cost about
+the same whether the frame has 1 row or 400. Anything scoring a live flow feed
+should batch, which is why `/predict/batch` exists and why the Dockerfile runs
+one worker and scales by replica — each worker holds its own copy of the model.
 
 ---
 
@@ -271,7 +321,17 @@ docker compose -f deploy/docker-compose.yml up --build
 # Prometheus http://localhost:9090
 ```
 
-### Hugging Face Spaces (free, no card)
+### Render (the live deployment)
+
+`render.yaml` is a blueprint: *New → Blueprint* in the Render dashboard, point it
+at the repo and branch, and it builds the Dockerfile, health-checks `/ready` and
+redeploys on push. Free plan, so the instance sleeps after 15 minutes idle.
+
+The Dockerfile's `HEALTHCHECK` reads `$PORT` rather than hardcoding 8000, because
+Render injects its own port — pinning it would report a working service as
+unhealthy.
+
+### Hugging Face Spaces
 
 A Space builds from its own git repo and needs YAML frontmatter in `README.md`,
 so the deploy script assembles a minimal Space repo in a temp directory — only
@@ -286,6 +346,12 @@ export HF_TOKEN=hf_xxx           # write token from huggingface.co/settings/toke
 ./deploy/push_to_space.sh <hf-username> nids-api
 # → https://<hf-username>-nids-api.hf.space
 ```
+
+**Not used for this deployment.** Creating a Docker Space returned HTTP 402 on the
+account used here — HF gates Docker Spaces behind a payment method, and the free
+Static SDK cannot run Python. The script is kept because it works on an account
+where Docker Spaces are available, and the `402` branch prints the manual
+free-tier creation steps.
 
 The build takes a few minutes the first time, then the Space serves the demo UI
 at `/`, OpenAPI at `/docs` and the full API. Free CPU Spaces do not sleep on a
@@ -395,7 +461,8 @@ CICIDS2017 / captured flows
                                                      deploy
 ```
 
-`scripts/train_serving_model.py` imports its transformations from `src/`, the
+`scripts/train_serving_model.py --model {xgb,rf-tuned,lgbm}` imports its
+transformations from `src/`, the
 same modules the ZenML pipeline steps call, so the promoted model is built by
 the same cleaning code that produced the comparison runs rather than a
 re-implementation that could drift from it.
@@ -422,7 +489,7 @@ ask:
   aggregate across replicas. Correct for one container; a multi-replica
   deployment needs Prometheus to do the aggregation, which it does by design.
 - **Trained on a 10% sample.** Chosen so the whole train-and-promote loop runs
-  in ~30 seconds. The sample is stratified and class proportions match the full
+  in ~33 seconds. The sample is stratified and class proportions match the full
   dataset to within 1%, but the two rare attack classes are the visible cost.
 - **CICIDS2017 is from 2017.** A model trained on it detects 2017 attack
   patterns. Deployed on live traffic it would need retraining on captured flows;

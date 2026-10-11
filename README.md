@@ -13,17 +13,30 @@ It has two sides:
 
 ## Deployed service
 
-One multiclass Random Forest trained on CICIDS2017 is promoted to a self-contained
-4.2 MB bundle and served over FastAPI. It answers both "is this flow an attack"
+**Live: https://nids-api-bibt.onrender.com** — [demo UI](https://nids-api-bibt.onrender.com/) ·
+[OpenAPI](https://nids-api-bibt.onrender.com/docs) ·
+[model card](https://nids-api-bibt.onrender.com/model) ·
+[metrics](https://nids-api-bibt.onrender.com/metrics)
+
+Free instance, so it sleeps after 15 minutes idle and the first request after that
+takes ~1 minute while the container boots.
+
+One multiclass XGBoost model trained on CICIDS2017 is promoted to a self-contained
+0.6 MB bundle and served over FastAPI. It answers both "is this flow an attack"
 and "which attack family" from a single model.
 
-Held-out performance, attack vs benign: **recall 0.9919, precision 0.9966, false
-positive rate 0.00069**. Multiclass: accuracy 0.9980, weighted F1 0.9980, macro
-F1 0.8313 (one rare merged class is undetectable — see the deployment doc).
+Held-out performance, attack vs benign: **recall 0.9977, precision 0.9960, false
+positive rate 0.00082**. Multiclass: accuracy 0.9988, weighted F1 0.9988, macro
+F1 0.8416 (one rare merged class is undetectable by every candidate — see
+[the comparison notebook](analysis/model_comparison.ipynb)).
+
+Chosen over Random Forest, LightGBM, Logistic Regression and One-Class SVM in
+[`analysis/model_comparison.ipynb`](analysis/model_comparison.ipynb), which trains all
+five on one split and diagnoses why LightGBM needs `class_weight` to be competitive.
 
 ```bash
-# train the promoted model
-python scripts/train_serving_model.py --sample-size 0.1
+# train the promoted model (--model also accepts rf-tuned, lgbm)
+python scripts/train_serving_model.py --model xgb --sample-size 0.1
 
 # serve it
 uvicorn serving.app:app --port 8000      # demo UI at /, OpenAPI at /docs

@@ -2,9 +2,12 @@
 
 The ZenML pipeline in `pipelines/training_pipeline.py` is the experimentation
 surface: it trains eight model/target combinations so they can be compared in
-MLflow. This script is the promotion step. It trains one multiclass Random
-Forest on the attack-type target and writes a self-contained bundle to
-`artifacts/` that `serving/` loads at startup.
+MLflow. This script is the promotion step. It trains one chosen model on the
+attack-type target and writes a self-contained bundle to `artifacts/` that
+`serving/` loads at startup.
+
+`--model` selects the estimator. The defaults per model reproduce
+`analysis/model_comparison.ipynb`, which is where the choice was made.
 
 The binary verdict (attack vs benign) is derived from the multiclass prediction
 rather than trained separately, so one model answers both questions and the
@@ -15,6 +18,7 @@ same code as the pipeline runs.
 
 Usage:
     python scripts/train_serving_model.py --sample-size 0.1
+    python scripts/train_serving_model.py --model rf-tuned
 """
 
 import argparse
@@ -42,6 +46,7 @@ from sklearn.metrics import (
 )
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import LabelEncoder
 
 from src.data_handling import (
     DownCasting,
@@ -172,18 +177,94 @@ def build_reference_stats(X: pd.DataFrame) -> dict:
     return stats
 
 
-def evaluate(pipeline: Pipeline, X_test: pd.DataFrame, y_test: pd.Series) -> dict:
+def build_pipeline(model: str, n_classes: int, random_state: int, n_estimators: int) -> Pipeline:
+    """Builds the inference pipeline for the chosen estimator.
+
+    Imputation lives inside the pipeline so the saved artifact accepts raw
+    feature values and no fill statistic has to be recomputed at serve time.
+    Trees are scale-invariant, so no scaler or PCA is needed for any of these.
+
+    Args:
+        model (str): One of `xgb`, `rf-tuned`, `lgbm`.
+        n_classes (int): Number of label classes.
+        random_state (int): Seed.
+        n_estimators (int): Trees or boosting rounds.
+
+    Returns:
+        Pipeline: Unfitted pipeline ending in the estimator.
+    """
+    if model == "xgb":
+        # Chosen in analysis/model_comparison.ipynb: highest attack recall
+        # (0.9977) at the lowest false positive rate of the top three.
+        import xgboost as xgb
+
+        estimator = xgb.XGBClassifier(
+            objective="multi:softprob",
+            num_class=n_classes,
+            n_estimators=n_estimators,
+            learning_rate=0.1,
+            max_depth=5,
+            subsample=0.8,
+            eval_metric="mlogloss",
+            n_jobs=-1,
+            random_state=random_state,
+        )
+    elif model == "rf-tuned":
+        # The repo's tuned values from models/randomforest.py. Deliberately no
+        # class_weight: the notebook shows it costs this model recall.
+        estimator = RandomForestClassifier(
+            n_estimators=n_estimators,
+            max_samples=0.9034128710297624,
+            max_features=0.1751204590963604,
+            min_samples_leaf=1,
+            n_jobs=-1,
+            random_state=random_state,
+        )
+    elif model == "lgbm":
+        # class_weight is not optional here. Without it LightGBM's multiclass
+        # hessian floor rejects the splits that separate the rare classes and
+        # attack recall collapses from 0.998 to 0.740.
+        import lightgbm as lgb
+
+        estimator = lgb.LGBMClassifier(
+            objective="multiclass",
+            n_estimators=n_estimators,
+            learning_rate=0.1,
+            class_weight="balanced",
+            n_jobs=-1,
+            random_state=random_state,
+            verbose=-1,
+        )
+    else:
+        raise ValueError(f"Unknown model {model!r}")
+
+    return Pipeline([("imputer", SimpleImputer(strategy="median")), (model, estimator)])
+
+
+def evaluate(
+    pipeline: Pipeline,
+    X_test: pd.DataFrame,
+    y_test: pd.Series,
+    class_names: list,
+    benign_idx: int,
+) -> dict:
     """Scores the trained pipeline on multiclass and derived-binary terms.
+
+    Labels are integer-encoded because XGBoost and LightGBM require it; the
+    string names are carried alongside so the report stays readable.
 
     Args:
         pipeline (Pipeline): Fitted inference pipeline.
         X_test (pd.DataFrame): Held-out features.
-        y_test (pd.Series): Held-out attack-type labels.
+        y_test (pd.Series): Held-out labels, integer-encoded.
+        class_names (list): Class names in encoder order.
+        benign_idx (int): Encoded value of the benign class.
 
     Returns:
         dict: Metrics plus the per-class report and confusion matrix.
     """
-    y_pred = pipeline.predict(X_test)
+    y_pred = np.asarray(pipeline.predict(X_test))
+    label_ids = list(range(len(class_names)))
 
     metrics = {
         "multiclass": {
@@ -201,10 +282,9 @@ def evaluate(pipeline: Pipeline, X_test: pd.DataFrame, y_test: pd.Series) -> dic
 
     # Binary view: anything that is not BENIGN is an attack. This is the number
     # a SOC cares about, so it is reported separately from the macro average.
-    y_true_attack = (y_test.to_numpy() != BENIGN_LABEL).astype(int)
-    y_pred_attack = (y_pred != BENIGN_LABEL).astype(int)
-    benign_index = list(pipeline.classes_).index(BENIGN_LABEL)
-    attack_proba = 1.0 - pipeline.predict_proba(X_test)[:, benign_index]
+    y_true_attack = (y_test.to_numpy() != benign_idx).astype(int)
+    y_pred_attack = (y_pred != benign_idx).astype(int)
+    attack_proba = 1.0 - pipeline.predict_proba(X_test)[:, benign_idx]
 
     metrics["binary"] = {
         "precision": float(precision_score(y_true_attack, y_pred_attack, zero_division=0)),
@@ -216,11 +296,19 @@ def evaluate(pipeline: Pipeline, X_test: pd.DataFrame, y_test: pd.Series) -> dic
         ),
     }
 
-    labels = sorted(set(y_test) | set(y_pred))
-    metrics["per_class"] = classification_report(y_test, y_pred, zero_division=0, output_dict=True)
+    # Pass labels explicitly: a class the model never predicts would otherwise
+    # be dropped from the report, hiding exactly the failure worth seeing.
+    metrics["per_class"] = classification_report(
+        y_test,
+        y_pred,
+        labels=label_ids,
+        target_names=class_names,
+        zero_division=0,
+        output_dict=True,
+    )
     metrics["confusion_matrix"] = {
-        "labels": labels,
-        "matrix": confusion_matrix(y_test, y_pred, labels=labels).tolist(),
+        "labels": class_names,
+        "matrix": confusion_matrix(y_test, y_pred, labels=label_ids).tolist(),
     }
     return metrics
 
@@ -275,7 +363,18 @@ def main() -> None:
         help="Stratified fraction of the dataset to train on.",
     )
     parser.add_argument("--test-size", type=float, default=0.25)
-    parser.add_argument("--n-estimators", type=int, default=120)
+    parser.add_argument(
+        "--model",
+        default="xgb",
+        choices=["xgb", "rf-tuned", "lgbm"],
+        help="Estimator to promote. See analysis/model_comparison.ipynb.",
+    )
+    parser.add_argument(
+        "--n-estimators",
+        type=int,
+        default=None,
+        help="Trees or boosting rounds. Defaults per model to the notebook's value.",
+    )
     parser.add_argument("--random-state", type=int, default=42)
     parser.add_argument(
         "--n-samples-export",
@@ -284,6 +383,10 @@ def main() -> None:
         help="Number of held-out rows exported for the demo UI.",
     )
     args = parser.parse_args()
+
+    # Per-model defaults reproduce analysis/model_comparison.ipynb.
+    if args.n_estimators is None:
+        args.n_estimators = {"xgb": 200, "rf-tuned": 97, "lgbm": 200}[args.model]
 
     started = time.perf_counter()
 
@@ -301,38 +404,29 @@ def main() -> None:
     df = DropOneValueFeature().drop_features(df, df.nunique())
 
     X = df.drop(columns=[TARGET])
-    y = df[TARGET].astype(str)
+    y_text = df[TARGET].astype(str)
+
+    # XGBoost and LightGBM reject non-integer labels. One encoder keeps every
+    # model on the same label space, and the string names ride along in the
+    # bundle so the service can answer with "DDoS" rather than "3".
+    encoder = LabelEncoder().fit(y_text)
+    y = pd.Series(encoder.transform(y_text), index=y_text.index)
+    class_names = [str(c) for c in encoder.classes_]
+    benign_idx = class_names.index(BENIGN_LABEL)
 
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=args.test_size, random_state=args.random_state, stratify=y
     )
     logger.info(f"Train rows: {len(X_train):,}  Test rows: {len(X_test):,}")
+    logger.info(f"Classes: {class_names}")
 
-    # Imputation lives inside the pipeline so the saved artifact accepts raw
-    # feature values and no fill statistic has to be recomputed at serve time.
-    pipeline = Pipeline(
-        [
-            ("imputer", SimpleImputer(strategy="median")),
-            (
-                "rf",
-                RandomForestClassifier(
-                    n_estimators=args.n_estimators,
-                    max_samples=0.9,
-                    max_features="sqrt",
-                    min_samples_leaf=1,
-                    class_weight="balanced_subsample",
-                    n_jobs=-1,
-                    random_state=args.random_state,
-                ),
-            ),
-        ]
-    )
+    pipeline = build_pipeline(args.model, len(class_names), args.random_state, args.n_estimators)
 
-    logger.info("Fitting pipeline")
+    logger.info(f"Fitting {args.model} ({args.n_estimators} estimators)")
     pipeline.fit(X_train, y_train)
 
     logger.info("Evaluating")
-    metrics = evaluate(pipeline, X_test, y_test)
+    metrics = evaluate(pipeline, X_test, y_test, class_names, benign_idx)
     logger.info(
         "binary recall=%.4f precision=%.4f fpr=%.5f | multiclass f1_macro=%.4f",
         metrics["binary"]["recall"],
@@ -343,7 +437,7 @@ def main() -> None:
 
     os.makedirs(ARTIFACT_DIR, exist_ok=True)
 
-    importances = pipeline.named_steps["rf"].feature_importances_
+    importances = pipeline.steps[-1][1].feature_importances_
     top_features = (
         pd.Series(importances, index=X_train.columns).sort_values(ascending=False).head(15)
     )
@@ -351,7 +445,9 @@ def main() -> None:
     bundle = {
         "pipeline": pipeline,
         "feature_names": list(X_train.columns),
-        "classes": [str(c) for c in pipeline.classes_],
+        # Order matches predict_proba's columns: the encoder sorts labels and
+        # both estimators expose classes_ as 0..n-1 in that same order.
+        "classes": class_names,
         "benign_label": BENIGN_LABEL,
         "metrics": metrics,
         "reference_stats": build_reference_stats(X_train),
@@ -359,6 +455,7 @@ def main() -> None:
         "trained_at": datetime.now(timezone.utc).isoformat(),
         "git_sha": git_sha(),
         "params": {
+            "model": args.model,
             "sample_size": args.sample_size,
             "test_size": args.test_size,
             "n_estimators": args.n_estimators,
@@ -382,8 +479,8 @@ def main() -> None:
 
     # Held-out rows for the demo UI, one per class where available.
     samples = []
-    for label in bundle["classes"]:
-        matching = X_test[y_test == label]
+    for label_idx, label in enumerate(class_names):
+        matching = X_test[y_test == label_idx]
         if matching.empty:
             continue
         row = matching.iloc[0]

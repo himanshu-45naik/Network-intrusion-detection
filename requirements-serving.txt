@@ -7,6 +7,11 @@ pydantic>=2.9
 # Pinned to the minor the model was pickled with: sklearn makes no cross-version
 # unpickling guarantee.
 scikit-learn>=1.6,<1.7
+# The promoted model is an XGBoost booster wrapped in an sklearn Pipeline, so
+# unpickling it needs xgboost present even though no training happens here.
+# `xgboost-cpu`, not `xgboost`: the default wheel depends on nvidia-nccl for GPU
+# training, which adds ~364 MB of CUDA libraries this CPU-only service never calls.
+xgboost-cpu>=3.0
 numpy>=1.26,<2.3
 pandas>=2.2,<3
 joblib>=1.4
