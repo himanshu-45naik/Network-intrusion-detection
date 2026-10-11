@@ -1,0 +1,17 @@
+# Render blueprint. The free plan spins the instance down after 15 minutes of
+# inactivity, so the first request after idle pays a cold start while the 4 MB
+# model is loaded.
+services:
+  - type: web
+    name: nids-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: singapore
+    healthCheckPath: /ready
+    autoDeploy: true
+    envVars:
+      - key: DEFAULT_THRESHOLD
+        value: "0.5"
+      - key: DRIFT_WINDOW
+        value: "5000"

@@ -1,0 +1,12 @@
+# Runtime deps for the inference container only. ZenML, MLflow, matplotlib and
+# seaborn are training-time concerns and are deliberately absent, which keeps the
+# image small and the attack surface of the deployed service minimal.
+fastapi>=0.115
+uvicorn[standard]>=0.34
+pydantic>=2.9
+# Pinned to the minor the model was pickled with: sklearn makes no cross-version
+# unpickling guarantee.
+scikit-learn>=1.6,<1.7
+numpy>=1.26,<2.3
+pandas>=2.2,<3
+joblib>=1.4

@@ -6,21 +6,64 @@ A machine learning pipeline for detecting and classifying network intrusions usi
 
 This repository contains a complete ML pipeline for network intrusion detection. The system processes network traffic data, applies various data transformations, and trains machine learning models to detect different types of network attacks. The pipeline is built using the ZenML framework and includes MLflow integration for experiment tracking and model management.
 
+It has two sides:
+
+- **Experimentation** (`pipelines/`, `steps/`, `src/`, `models/`): a ZenML pipeline that trains eight model/target combinations and logs them to MLflow for comparison.
+- **Production** (`serving/`, `scripts/`, `Dockerfile`): one promoted model behind a FastAPI service, with a browser demo, Prometheus metrics and feature-drift detection.
+
+## Deployed service
+
+One multiclass Random Forest trained on CICIDS2017 is promoted to a self-contained
+4.2 MB bundle and served over FastAPI. It answers both "is this flow an attack"
+and "which attack family" from a single model.
+
+Held-out performance, attack vs benign: **recall 0.9919, precision 0.9966, false
+positive rate 0.00069**. Multiclass: accuracy 0.9980, weighted F1 0.9980, macro
+F1 0.8313 (one rare merged class is undetectable — see the deployment doc).
+
+```bash
+# train the promoted model
+python scripts/train_serving_model.py --sample-size 0.1
+
+# serve it
+uvicorn serving.app:app --port 8000      # demo UI at /, OpenAPI at /docs
+
+# or the container, with Prometheus alongside
+docker compose -f deploy/docker-compose.yml up --build
+
+# verify a running instance end to end
+python scripts/smoke_test.py --base-url http://127.0.0.1:8000
+```
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/` | Browser demo |
+| GET | `/health`, `/ready` | Liveness and readiness probes |
+| GET | `/model` | Served model card: metrics, features, training params |
+| POST | `/predict` | Score one flow |
+| POST | `/predict/batch` | Score up to 500 flows in one pass |
+| GET | `/drift` | Feature drift (PSI) vs the training distribution |
+| GET | `/metrics` | Prometheus exposition |
+
+**[DEPLOYMENT.md](DEPLOYMENT.md)** covers the deployed architecture, the measured
+latency and throughput, the observability and drift setup, the deploy paths
+(Hugging Face Spaces, Render, Docker Compose), the CI/CD pipeline, a runbook and
+the known limits.
 
 ## Installation
 
 1. **Clone the repository**
 
    ```
-   git clone https://github.com/yourusername/nids-ml-pipeline.git
-   cd nids-ml-pipeline
+   git clone https://github.com/himanshu-45naik/Network-intrusion-detection.git
+   cd Network-intrusion-detection
    ```
 
 2. **Create and activate a virtual environment**
 
    ```
    python -m venv venv
-   venv\Scripts\activate
+   source venv/bin/activate      # Windows: venv\Scripts\activate
    ```
 
 3. **Install the required packages**
@@ -63,6 +106,11 @@ This repository contains a complete ML pipeline for network intrusion detection.
 - **`steps/`**: ZenML pipeline steps
 - **`models/`**: Model implementations (Logistic Regression, SVM, Random Forest, XGBoost, etc.)
 - **`pipelines/`**: Definition of ZenML pipelines
+- **`scripts/`**: `train_serving_model.py` (promote one model to a serving bundle) and `smoke_test.py` (post-deploy verification)
+- **`serving/`**: FastAPI inference service, request metrics and drift scoring
+- **`artifacts/`**: The promoted model bundle, its model card and demo samples
+- **`deploy/`**: Docker Compose stack with Prometheus, and the Hugging Face Spaces deploy script
+- **`tests/`**: Contract tests for the inference API
 
 ## Running the Pipeline
 

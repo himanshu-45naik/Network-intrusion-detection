@@ -1,0 +1,31 @@
+# Local stand-in for the deployed topology: the inference container plus a
+# Prometheus that scrapes it. Run from the repository root:
+#   docker compose -f deploy/docker-compose.yml up --build
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      # Raise to cut false positives, lower to catch more attacks.
+      DEFAULT_THRESHOLD: "0.5"
+      DRIFT_WINDOW: "5000"
+      DRIFT_MIN_ROWS: "200"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/ready')"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 20s
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      api:
+        condition: service_healthy
