@@ -74,11 +74,32 @@ CREATE_STATUS="$(curl -s -o /dev/null -w '%{http_code}' -X POST \
   -H "Content-Type: application/json" \
   -d "{\"type\":\"space\",\"name\":\"${SPACE}\",\"sdk\":\"docker\",\"private\":false}")"
 
+# Anything other than "created" or "already exists" is fatal: pushing to a Space
+# that was never created just produces a confusing second error.
 case "$CREATE_STATUS" in
   200|201) echo "Created Space ${USER}/${SPACE}" ;;
   409)     echo "Space ${USER}/${SPACE} already exists, redeploying" ;;
-  401|403) echo "Token rejected (HTTP ${CREATE_STATUS}) - needs write scope" >&2; exit 1 ;;
-  *)       echo "Space creation returned HTTP ${CREATE_STATUS}, attempting push anyway" >&2 ;;
+  401|403)
+    echo "Token rejected (HTTP ${CREATE_STATUS}). Needs a Write-scoped token." >&2
+    exit 1 ;;
+  402)
+    cat >&2 <<MSG
+Space creation refused with HTTP 402 (Payment Required).
+
+This is a billing gate on the account, not a problem with the token or this
+script. Create the Space by hand instead - the free tier needs no payment:
+
+  1. https://huggingface.co/new-space
+  2. Owner ${USER}, Space name ${SPACE}
+  3. SDK: Docker -> Blank
+  4. Hardware: CPU basic (free), visibility Public
+  5. Create, then re-run this script. It will see HTTP 409 and push.
+MSG
+    exit 1 ;;
+  *)
+    echo "Space creation returned HTTP ${CREATE_STATUS}. Not pushing." >&2
+    echo "Create the Space at https://huggingface.co/new-space (SDK: Docker) and re-run." >&2
+    exit 1 ;;
 esac
 
 cd "$STAGE"
